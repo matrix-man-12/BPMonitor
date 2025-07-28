@@ -30,16 +30,18 @@ export function Header() {
   const pageTitle = getPageTitle(location.pathname)
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b bg-background/50 backdrop-blur-sm px-6">
+    <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="h-6" />
-      <div className="flex-1">
-        <h1 className="text-lg font-semibold text-foreground">
-          Welcome back, {user?.firstName || 'User'} 👋
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {pageTitle} - Track your health journey
-        </p>
+      <div className="flex flex-1 items-center gap-4">
+        <div className="flex-1">
+          <h1 className="text-lg font-semibold text-foreground">
+            Welcome back, {user?.firstName || 'User'} 👋
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {pageTitle} - Track your health journey
+          </p>
+        </div>
       </div>
     </header>
   )

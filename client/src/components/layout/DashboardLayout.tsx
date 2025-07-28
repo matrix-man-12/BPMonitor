@@ -1,20 +1,19 @@
-import { ReactNode } from 'react'
-import { AppSidebar } from '@/components/layout/AppSidebar'
-import { Header } from '@/components/layout/Header'
-import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarInset } from '@/components/ui/sidebar'
+import { AppSidebar } from './AppSidebar'
+import { Header } from './Header'
 
 interface DashboardLayoutProps {
-  children: ReactNode
+  children: React.ReactNode
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen dashboard-gradient">
+    <div className="flex min-h-screen w-full dashboard-gradient">
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="flex flex-col flex-1 min-w-0">
         <Header />
-        <main className="flex-1 p-6 pt-0">
-          <div className="mx-auto max-w-8xl">
+        <main className="flex-1 overflow-auto">
+          <div className="container mx-auto max-w-7xl p-6">
             {children}
           </div>
         </main>

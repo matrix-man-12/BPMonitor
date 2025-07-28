@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,30 +9,50 @@ import { useAuth } from '@/hooks/useAuth'
 
 export function Login() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+    
+    if (loading) return // Prevent double submission
+    
     setLoading(true)
     setError('')
 
     try {
       const result = await login(email, password)
       if (result.success) {
-        navigate('/dashboard')
+        // Clear form on success
+        setEmail('')
+        setPassword('')
+        // Navigation will be handled by the useEffect hook
       } else {
         setError(result.message || 'Login failed')
       }
     } catch (error) {
+      console.error('Login submission error:', error)
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
     }
+  }
+
+  const fillDemoCredentials = () => {
+    setEmail('demo@bpmonitor.com')
+    setPassword('demo123')
   }
 
   return (
@@ -57,7 +77,7 @@ export function Login() {
             <CardTitle className="text-2xl text-center">Sign In</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {error && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -66,31 +86,37 @@ export function Login() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Email Address</label>
+                <label htmlFor="email" className="text-sm font-medium">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="email"
                     type="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     required
+                    disabled={loading}
+                    autoComplete="email"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Password</label>
+                <label htmlFor="password" className="text-sm font-medium">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
+                    disabled={loading}
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
@@ -98,6 +124,8 @@ export function Login() {
                     size="icon"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                    tabIndex={-1}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -112,6 +140,7 @@ export function Login() {
                 <Link 
                   to="/forgot-password" 
                   className="text-primary hover:underline"
+                  tabIndex={loading ? -1 : 0}
                 >
                   Forgot password?
                 </Link>
@@ -180,7 +209,7 @@ export function Login() {
         {/* Demo Account */}
         <Card className="dashboard-card border-dashed">
           <CardContent className="pt-6">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-3">
               <h4 className="font-medium">Demo Account</h4>
               <p className="text-sm text-muted-foreground">
                 Try the app with demo credentials
@@ -189,6 +218,14 @@ export function Login() {
                 <div>Email: demo@bpmonitor.com</div>
                 <div>Password: demo123</div>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fillDemoCredentials}
+                disabled={loading}
+              >
+                Fill Demo Credentials
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -53,9 +53,13 @@ axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      // Only clear auth and redirect if not already on login page
+      const currentPath = window.location.pathname
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
@@ -64,6 +68,7 @@ axios.interceptors.response.use(
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
     const initAuth = async () => {
@@ -72,16 +77,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (token && userData) {
         try {
-          // Verify token is still valid by fetching profile
+          // Parse stored user data first for immediate UI update
+          const parsedUser = JSON.parse(userData)
+          setUser(parsedUser)
+          
+          // Then verify token is still valid by fetching fresh profile
           const response = await axios.get('/api/auth/profile')
-          setUser(response.data.data)
+          if (response.data.success) {
+            setUser(response.data.data)
+            localStorage.setItem('user', JSON.stringify(response.data.data))
+          }
         } catch (error) {
           // Token is invalid, clear storage
+          console.error('Auth verification failed:', error)
           localStorage.removeItem('token')
           localStorage.removeItem('user')
+          setUser(null)
         }
       }
+      
       setLoading(false)
+      setIsInitialized(true)
     }
 
     initAuth()
@@ -89,43 +105,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      setLoading(true)
       const response = await axios.post('/api/auth/login', { email, password })
       
       if (response.data.success) {
-        const { user, token } = response.data.data
+        const { user: newUser, token } = response.data.data
+        
+        // Update localStorage first
         localStorage.setItem('token', token)
-        localStorage.setItem('user', JSON.stringify(user))
-        setUser(user)
+        localStorage.setItem('user', JSON.stringify(newUser))
+        
+        // Then update state
+        setUser(newUser)
+        
         return { success: true }
       } else {
         return { success: false, message: response.data.message }
       }
     } catch (error: any) {
+      console.error('Login error:', error)
       return { 
         success: false, 
         message: error.response?.data?.message || 'Login failed' 
       }
+    } finally {
+      setLoading(false)
     }
   }
 
   const register = async (userData: RegisterData) => {
     try {
+      setLoading(true)
       const response = await axios.post('/api/auth/register', userData)
       
       if (response.data.success) {
-        const { user, token } = response.data.data
+        const { user: newUser, token } = response.data.data
+        
+        // Update localStorage first
         localStorage.setItem('token', token)
-        localStorage.setItem('user', JSON.stringify(user))
-        setUser(user)
+        localStorage.setItem('user', JSON.stringify(newUser))
+        
+        // Then update state
+        setUser(newUser)
+        
         return { success: true }
       } else {
         return { success: false, message: response.data.message }
       }
     } catch (error: any) {
+      console.error('Registration error:', error)
       return { 
         success: false, 
         message: error.response?.data?.message || 'Registration failed' 
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -159,8 +193,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
-    loading,
+    isAuthenticated: !!user && isInitialized,
+    loading: loading || !isInitialized,
     login,
     register,
     logout,
