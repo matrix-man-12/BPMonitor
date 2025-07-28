@@ -11,8 +11,10 @@ import {
   Plus,
   Activity,
   Clock,
-  Target
+  Target,
+  ArrowRight
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 // Mock data - will be replaced with real API data
 const dashboardStats = {
@@ -36,6 +38,7 @@ const familyMembers = [
 ]
 
 export function Dashboard() {
+  const navigate = useNavigate()
   const progressPercentage = (dashboardStats.completedReadings / dashboardStats.weeklyGoal) * 100
 
   return (
@@ -43,7 +46,7 @@ export function Dashboard() {
       {/* Statistics Cards Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Total Readings Card */}
-        <Card className="dashboard-card group hover:scale-105">
+        <Card className="dashboard-card group hover:scale-105 cursor-pointer" onClick={() => navigate('/readings')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Readings
@@ -59,7 +62,7 @@ export function Dashboard() {
         </Card>
 
         {/* Family Members Card */}
-        <Card className="dashboard-card group hover:scale-105">
+        <Card className="dashboard-card group hover:scale-105 cursor-pointer" onClick={() => navigate('/family')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Family Members
@@ -119,7 +122,7 @@ export function Dashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-semibold">Recent Readings</CardTitle>
-              <Button size="sm" className="gap-2">
+              <Button size="sm" className="gap-2" onClick={() => navigate('/readings')}>
                 <Plus className="h-4 w-4" />
                 Add Reading
               </Button>
@@ -156,6 +159,14 @@ export function Dashboard() {
                 <p>No readings yet. Start tracking your blood pressure!</p>
               </div>
             )}
+            <Button 
+              variant="outline" 
+              className="w-full gap-2" 
+              onClick={() => navigate('/readings')}
+            >
+              View All Readings
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
 
@@ -184,7 +195,7 @@ export function Dashboard() {
               </div>
             ))}
             
-            <Button variant="outline" className="w-full mt-4 gap-2">
+            <Button variant="outline" className="w-full mt-4 gap-2" onClick={() => navigate('/family')}>
               <Plus className="h-4 w-4" />
               Invite Family Member
             </Button>
@@ -199,15 +210,26 @@ export function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            <Button className="h-24 flex-col gap-2 bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600">
+            <Button 
+              className="h-24 flex-col gap-2 bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600"
+              onClick={() => navigate('/readings')}
+            >
               <Heart className="h-6 w-6" />
               Record BP Reading
             </Button>
-            <Button variant="outline" className="h-24 flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-24 flex-col gap-2"
+              onClick={() => navigate('/family')}
+            >
               <Users className="h-6 w-6" />
               Manage Family
             </Button>
-            <Button variant="outline" className="h-24 flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-24 flex-col gap-2"
+              onClick={() => navigate('/readings')}
+            >
               <TrendingUp className="h-6 w-6" />
               View Reports
             </Button>

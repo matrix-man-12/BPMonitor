@@ -4,6 +4,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Dashboard } from '@/pages/Dashboard'
 import { FamilyGroups } from '@/pages/FamilyGroups'
 import { Profile } from '@/pages/Profile'
+import { BPReadings } from '@/pages/BPReadings'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
 import { useAuth } from '@/hooks/useAuth'
@@ -42,9 +43,9 @@ function App() {
                   <DashboardLayout>
                     <Routes>
                       <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/readings" element={<BPReadings />} />
                       <Route path="/family" element={<FamilyGroups />} />
                       <Route path="/profile" element={<Profile />} />
-                      <Route path="/readings" element={<div>BP Readings - Coming Soon</div>} />
                       <Route path="/calendar" element={<div>Calendar - Coming Soon</div>} />
                       <Route path="/notifications" element={<div>Notifications - Coming Soon</div>} />
                       <Route path="/settings" element={<div>Settings - Coming Soon</div>} />
