@@ -29,10 +29,11 @@ const userSchema = new mongoose.Schema({
   },
   dateOfBirth: {
     type: Date,
-    required: [true, 'Date of birth is required'],
+    required: false, // Made optional for existing users
     validate: {
       validator: function(date) {
-        return date < new Date();
+        // Only validate if date is provided
+        return !date || date < new Date();
       },
       message: 'Date of birth must be in the past'
     }

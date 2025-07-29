@@ -131,6 +131,7 @@ const login = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
+      .select('-password') // Exclude password field
       .populate('familyGroups', 'name members');
 
     res.json({
@@ -149,7 +150,7 @@ const getProfile = async (req, res) => {
 // Update user profile
 const updateProfile = async (req, res) => {
   try {
-    const allowedUpdates = ['firstName', 'lastName', 'dateOfBirth', 'notificationPreferences'];
+    const allowedUpdates = ['firstName', 'lastName', 'email', 'dateOfBirth', 'notificationPreferences'];
     const updates = {};
 
     // Filter allowed updates
@@ -168,7 +169,7 @@ const updateProfile = async (req, res) => {
       req.user._id,
       updates,
       { new: true, runValidators: true }
-    );
+    ).select('-password');
 
     res.json({
       success: true,

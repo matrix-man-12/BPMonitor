@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
+import { useState, useEffect, createContext, useContext, type ReactNode } from 'react'
 import axios from 'axios'
 
 interface User {
@@ -7,6 +7,7 @@ interface User {
   firstName: string
   lastName: string
   fullName: string
+  dateOfBirth?: string
   familyGroups: string[]
   notificationPreferences: {
     enabled: boolean
