@@ -5,7 +5,7 @@ import { Dashboard } from '@/pages/Dashboard'
 import { FamilyGroups } from '@/pages/FamilyGroups'
 import { FamilyInvite } from '@/pages/FamilyInvite'
 import Profile from '@/pages/Profile'
-import { BPReadings } from '@/pages/BPReadings'
+import BPReadings from '@/pages/BPReadings'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
 import { useAuth } from '@/hooks/useAuth'
@@ -50,7 +50,7 @@ function App() {
                       <Route path="/readings" element={<BPReadings />} />
                       <Route path="/family" element={<FamilyGroups />} />
                       <Route path="/profile" element={<Profile />} />
-                      <Route path="/calendar" element={<div>Calendar - Coming Soon</div>} />
+
                       <Route path="/notifications" element={<div>Notifications - Coming Soon</div>} />
                       <Route path="/settings" element={<div>Settings - Coming Soon</div>} />
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />

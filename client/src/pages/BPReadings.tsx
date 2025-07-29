@@ -29,7 +29,11 @@ import {
   Trash2,
   AlertTriangle,
   BarChart3,
-  Loader2
+  Loader2,
+  Activity,
+  Target,
+  Zap,
+  Info
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -38,7 +42,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  ResponsiveContainer, 
+  ReferenceLine, 
+  Area, 
+  AreaChart,
+  Brush,
+  Dot,
+  Tooltip,
+  Legend
+} from 'recharts'
 import bpReadingService, { 
   type BPReading, 
   type CreateBPReadingData, 
@@ -51,23 +69,85 @@ const BP_CATEGORIES = {
   'elevated': { label: 'Elevated', color: 'bg-yellow-500', range: '120-129 and <80' },
   'high-stage-1': { label: 'High Stage 1', color: 'bg-orange-500', range: '130-139 or 80-89' },
   'high-stage-2': { label: 'High Stage 2', color: 'bg-red-500', range: '140-179 or 90-119' },
-  'hypertensive-crisis': { label: 'Hypertensive Crisis', color: 'bg-red-700', range: '>180 or >120' }
+  'hypertensive-crisis': { label: 'Crisis', color: 'bg-red-700', range: '≥180 or ≥120' }
 }
 
 const chartConfig = {
   systolic: {
     label: "Systolic",
-    color: "hsl(var(--chart-1))",
+    color: "hsl(220 70% 50%)",
   },
   diastolic: {
     label: "Diastolic", 
-    color: "hsl(var(--chart-2))",
+    color: "hsl(160 60% 45%)",
   },
   pulse: {
     label: "Pulse Rate",
-    color: "hsl(var(--chart-3))",
+    color: "hsl(280 65% 60%)",
   },
+  average: {
+    label: "Average",
+    color: "hsl(40 70% 50%)",
+  }
 } satisfies ChartConfig
+
+// Custom tooltip component for better data display
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload
+    return (
+      <div className="bg-background border rounded-lg p-3 shadow-lg">
+        <p className="font-medium text-sm mb-2">{label}</p>
+        <div className="space-y-1">
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center gap-2 text-sm">
+              <div 
+                className="w-2 h-2 rounded-full" 
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-muted-foreground">{entry.dataKey}:</span>
+              <span className="font-medium">
+                {entry.value} {entry.dataKey === 'pulse' ? 'bpm' : 'mmHg'}
+              </span>
+            </div>
+          ))}
+          {data.category && (
+            <div className="pt-1 mt-1 border-t">
+              <span className="text-xs text-muted-foreground">Category: </span>
+              <Badge 
+                variant="outline" 
+                className={`text-xs ${BP_CATEGORIES[data.category as keyof typeof BP_CATEGORIES]?.color}`}
+              >
+                {BP_CATEGORIES[data.category as keyof typeof BP_CATEGORIES]?.label}
+              </Badge>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+  return null
+}
+
+// Custom dot component for highlighting abnormal readings
+const CustomDot = (props: any) => {
+  const { cx, cy, payload } = props
+  const isAbnormal = payload.category !== 'normal'
+  
+  if (isAbnormal) {
+    return (
+      <Dot
+        cx={cx}
+        cy={cy}
+        r={6}
+        fill="hsl(var(--destructive))"
+        stroke="hsl(var(--background))"
+        strokeWidth={2}
+      />
+    )
+  }
+  return <Dot cx={cx} cy={cy} r={3} fill={props.fill} />
+}
 
 function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) => void }) {
   const [open, setOpen] = useState(false)
@@ -118,7 +198,7 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) =
         timestamp: formData.timestamp,
         comments: formData.comments || undefined
       }
-
+      
       await onAdd(newReading)
       setOpen(false)
       setFormData({
@@ -130,7 +210,6 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) =
       })
       setErrors([])
     } catch (error) {
-      console.error('Error adding reading:', error)
       setErrors(['Failed to add reading. Please try again.'])
     } finally {
       setSubmitting(false)
@@ -154,7 +233,7 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) =
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <ul className="list-disc list-inside">
+                <ul className="list-disc pl-4">
                   {errors.map((error, index) => (
                     <li key={index}>{error}</li>
                   ))}
@@ -162,99 +241,77 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) =
               </AlertDescription>
             </Alert>
           )}
-
+          
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="systolic" className="text-sm font-medium cursor-pointer">
-                Systolic (mmHg)
-              </label>
+            <div>
+              <label className="text-sm font-medium">Systolic (mmHg)</label>
               <Input
-                id="systolic"
                 type="number"
-                placeholder="120"
+                min="70"
+                max="250"
                 value={formData.systolic}
-                onChange={(e) => setFormData({ ...formData, systolic: e.target.value })}
+                onChange={(e) => setFormData({...formData, systolic: e.target.value})}
+                placeholder="120"
                 className="cursor-pointer"
                 disabled={submitting}
                 required
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="diastolic" className="text-sm font-medium cursor-pointer">
-                Diastolic (mmHg)
-              </label>
+            <div>
+              <label className="text-sm font-medium">Diastolic (mmHg)</label>
               <Input
-                id="diastolic"
                 type="number"
-                placeholder="80"
+                min="40"
+                max="150"
                 value={formData.diastolic}
-                onChange={(e) => setFormData({ ...formData, diastolic: e.target.value })}
+                onChange={(e) => setFormData({...formData, diastolic: e.target.value})}
+                placeholder="80"
                 className="cursor-pointer"
                 disabled={submitting}
                 required
               />
             </div>
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="pulseRate" className="text-sm font-medium cursor-pointer">
-              Pulse Rate (bpm) - Optional
-            </label>
+          
+          <div>
+            <label className="text-sm font-medium">Pulse Rate (bpm) - Optional</label>
             <Input
-              id="pulseRate"
               type="number"
-              placeholder="72"
+              min="30"
+              max="200"
               value={formData.pulseRate}
-              onChange={(e) => setFormData({ ...formData, pulseRate: e.target.value })}
+              onChange={(e) => setFormData({...formData, pulseRate: e.target.value})}
+              placeholder="72"
               className="cursor-pointer"
               disabled={submitting}
             />
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="timestamp" className="text-sm font-medium cursor-pointer">
-              Date & Time
-            </label>
+          
+          <div>
+            <label className="text-sm font-medium">Date & Time</label>
             <Input
-              id="timestamp"
               type="datetime-local"
               value={formData.timestamp}
-              onChange={(e) => setFormData({ ...formData, timestamp: e.target.value })}
+              onChange={(e) => setFormData({...formData, timestamp: e.target.value})}
               className="cursor-pointer"
               disabled={submitting}
               required
             />
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="comments" className="text-sm font-medium cursor-pointer">
-              Comments - Optional
-            </label>
+          
+          <div>
+            <label className="text-sm font-medium">Comments - Optional</label>
             <Input
-              id="comments"
-              placeholder="e.g., after exercise, morning reading..."
               value={formData.comments}
-              onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+              onChange={(e) => setFormData({...formData, comments: e.target.value})}
+              placeholder="How are you feeling?"
               className="cursor-pointer"
               disabled={submitting}
             />
           </div>
-
+          
           <div className="flex gap-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setOpen(false)} 
-              className="flex-1 cursor-pointer"
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              className="flex-1 cursor-pointer" 
-              disabled={submitting}
-            >
+            <Button type="submit" disabled={submitting} className="flex-1 cursor-pointer">
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -264,6 +321,9 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) =
                 'Add Reading'
               )}
             </Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting} className="cursor-pointer">
+              Cancel
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -271,108 +331,67 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) =
   )
 }
 
-function BPReadingCard({ reading, onEdit, onDelete }: { 
-  reading: BPReading
-  onEdit: (reading: BPReading) => void
-  onDelete: (id: string) => void 
-}) {
-  const category = BP_CATEGORIES[reading.category]
-  const readingDate = new Date(reading.timestamp)
-
-  return (
-    <Card className="dashboard-card hover:scale-[1.02] transition-transform cursor-pointer">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-pink-500 text-white cursor-pointer">
-              <Heart className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold">
-                {reading.systolic}/{reading.diastolic}
-                <span className="text-sm font-normal text-muted-foreground ml-1">mmHg</span>
-              </div>
-              {reading.pulseRate && (
-                <div className="text-sm text-muted-foreground">
-                  Pulse: {reading.pulseRate} bpm
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Badge className={`${category.color} text-white cursor-pointer`}>
-              {category.label}
-            </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="cursor-pointer">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(reading)} className="cursor-pointer">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(reading._id)} className="text-red-600 cursor-pointer">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-        
-        <div className="mt-3 pt-3 border-t flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-3 w-3" />
-            {readingDate.toLocaleDateString()}
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="h-3 w-3" />
-            {readingDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </div>
-        </div>
-        
-        {reading.comments && (
-          <div className="mt-2 text-sm text-muted-foreground">
-            "{reading.comments}"
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-export function BPReadings() {
+export default function BPReadings() {
   const [readings, setReadings] = useState<BPReading[]>([])
   const [statistics, setStatistics] = useState<BPStatistics | null>(null)
-  const [categories, setCategories] = useState<Record<string, BPCategoryInfo>>({})
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [categories, setCategories] = useState<BPCategoryInfo[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPeriod, setSelectedPeriod] = useState('30') // days
+  const [showPulse, setShowPulse] = useState(false)
+  const [showTrendlines, setShowTrendlines] = useState(true)
 
-  // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        setError(null)
+        setError('')
         
-        const [readingsData, statisticsData, categoriesData] = await Promise.all([
-          bpReadingService.getReadings({ limit: 50, sortBy: 'timestamp', sortOrder: 'desc' }),
-          bpReadingService.getStatistics('30d'),
-          bpReadingService.getCategories()
-        ])
+        try {
+          // Fetch readings
+          const readingsResult = await bpReadingService.getReadings()
+          
+          if (readingsResult && readingsResult.readings) {
+            setReadings(readingsResult.readings)
+          } else if (Array.isArray(readingsResult)) {
+            setReadings(readingsResult)
+          } else {
+            setReadings([])
+          }
+        } catch (err) {
+          setReadings([])
+        }
         
-        setReadings(readingsData.readings)
-        setStatistics(statisticsData)
-        setCategories(categoriesData)
-      } catch (error) {
-        console.error('Failed to fetch BP data:', error)
-        setError('Failed to load BP readings. Please try again.')
+        try {
+          // Fetch statistics
+          const statsResult = await bpReadingService.getStatistics()
+          
+          if (statsResult && typeof statsResult === 'object') {
+            setStatistics(statsResult)
+          }
+        } catch (err) {
+          // Statistics are optional, continue without them
+        }
+        
+        try {
+          // Fetch categories
+          const categoriesResult = await bpReadingService.getCategories()
+          
+          if (categoriesResult && typeof categoriesResult === 'object') {
+            const categoriesArray = Object.entries(categoriesResult).map(([key, value]: [string, any]) => ({
+              id: key,
+              ...value
+            }))
+            setCategories(categoriesArray)
+          }
+        } catch (err) {
+          // Categories are optional, continue without them
+        }
+        
+      } catch (err) {
+        setError('Failed to load data: ' + (err instanceof Error ? err.message : 'Network error'))
       } finally {
         setLoading(false)
       }
@@ -381,289 +400,647 @@ export function BPReadings() {
     fetchData()
   }, [])
 
-  const filteredReadings = readings.filter(reading => {
-    const matchesSearch = reading.comments?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         `${reading.systolic}/${reading.diastolic}`.includes(searchQuery)
-    const matchesCategory = filterCategory === 'all' || reading.category === filterCategory
-    return matchesSearch && matchesCategory
-  })
-
   const handleAddReading = async (newReading: CreateBPReadingData) => {
+    setSubmitting(true)
     try {
-      const savedReading = await bpReadingService.createReading(newReading)
-      setReadings([savedReading, ...readings])
+      const result = await bpReadingService.createReading(newReading)
       
-      // Refresh statistics
-      const updatedStats = await bpReadingService.getStatistics('30d')
-      setStatistics(updatedStats)
-    } catch (error) {
-      console.error('Failed to add reading:', error)
-      throw error // Re-throw to be handled by the dialog
+      // Refresh readings data
+      const readingsResult = await bpReadingService.getReadings()
+      
+      if (readingsResult && readingsResult.readings) {
+        setReadings(readingsResult.readings)
+      } else if (Array.isArray(readingsResult)) {
+        setReadings(readingsResult)
+      }
+      
+      // Try to refresh statistics
+      try {
+        const statsResult = await bpReadingService.getStatistics()
+        if (statsResult) {
+          setStatistics(statsResult)
+        }
+      } catch (err) {
+        // Statistics refresh failed, continue
+      }
+      
+    } catch (err) {
+      setError('Failed to add reading: ' + (err instanceof Error ? err.message : 'Unknown error'))
+    } finally {
+      setSubmitting(false)
     }
-  }
-
-  const handleEditReading = async (reading: BPReading) => {
-    // TODO: Implement edit functionality with a dialog
-    console.log('Edit reading:', reading)
   }
 
   const handleDeleteReading = async (id: string) => {
     try {
-      await bpReadingService.deleteReading(id)
-      setReadings(readings.filter(r => r._id !== id))
+      const result = await bpReadingService.deleteReading(id)
       
-      // Refresh statistics
-      const updatedStats = await bpReadingService.getStatistics('30d')
-      setStatistics(updatedStats)
-    } catch (error) {
-      console.error('Failed to delete reading:', error)
-      // TODO: Show error message to user
+      // Refresh readings data
+      const readingsResult = await bpReadingService.getReadings()
+      
+      if (readingsResult && readingsResult.readings) {
+        setReadings(readingsResult.readings)
+      } else if (Array.isArray(readingsResult)) {
+        setReadings(readingsResult)
+      }
+      
+      // Try to refresh statistics
+      try {
+        const statsResult = await bpReadingService.getStatistics()
+        if (statsResult) {
+          setStatistics(statsResult)
+        }
+      } catch (err) {
+        // Statistics refresh failed, continue
+      }
+      
+    } catch (err) {
+      setError('Failed to delete reading: ' + (err instanceof Error ? err.message : 'Unknown error'))
     }
   }
 
-  // Calculate category stats from current readings
+  // Filter readings by search query and time period
+  const filteredReadings = readings
+    .filter(reading => 
+      searchQuery === '' || 
+      reading.comments?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reading.category.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter(reading => {
+      const days = parseInt(selectedPeriod)
+      if (days === 0) return true // All time
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - days)
+      return new Date(reading.timestamp) >= cutoff
+    })
+
   const categoryStats = Object.entries(BP_CATEGORIES).map(([key, category]) => ({
     ...category,
-    count: readings.filter(r => r.category === key).length,
-    percentage: readings.length > 0 ? (readings.filter(r => r.category === key).length / readings.length) * 100 : 0
+    count: filteredReadings.filter(r => r.category === key).length,
+    percentage: filteredReadings.length > 0 ? (filteredReadings.filter(r => r.category === key).length / filteredReadings.length) * 100 : 0
   }))
 
-  // Prepare chart data
-  const chartData = readings
+  // Enhanced chart data preparation with trend analysis
+  const chartData = filteredReadings
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map(reading => ({
-      date: new Date(reading.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      systolic: reading.systolic,
-      diastolic: reading.diastolic,
-      pulse: reading.pulseRate || 0,
-      fullDate: reading.timestamp
-    }))
+    .map((reading, index, array) => {
+      // Calculate 7-day moving average
+      const startIndex = Math.max(0, index - 3)
+      const endIndex = Math.min(array.length - 1, index + 3)
+      const window = array.slice(startIndex, endIndex + 1)
+      
+      const avgSystolic = window.reduce((sum, r) => sum + r.systolic, 0) / window.length
+      const avgDiastolic = window.reduce((sum, r) => sum + r.diastolic, 0) / window.length
+      
+      return {
+        date: new Date(reading.timestamp).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          ...(filteredReadings.length <= 7 ? { hour: '2-digit', minute: '2-digit' } : {})
+        }),
+        systolic: reading.systolic,
+        diastolic: reading.diastolic,
+        pulse: reading.pulseRate || 0,
+        avgSystolic: Math.round(avgSystolic),
+        avgDiastolic: Math.round(avgDiastolic),
+        category: reading.category,
+        fullDate: reading.timestamp,
+        isRecent: index >= array.length - 7
+      }
+    })
+
+  // Calculate trend
+  const getTrend = (data: number[]) => {
+    if (data.length < 2) return 0
+    const recent = data.slice(-5).reduce((a, b) => a + b, 0) / Math.min(5, data.length)
+    const older = data.slice(0, -5).reduce((a, b) => a + b, 0) / Math.max(1, data.length - 5)
+    return recent - older
+  }
+
+  const systolicTrend = chartData.length > 0 ? getTrend(chartData.map(d => d.systolic)) : 0
+  const diastolicTrend = chartData.length > 0 ? getTrend(chartData.map(d => d.diastolic)) : 0
+
+  // Safe number formatting helper
+  const safeToFixed = (value: number | undefined | null, decimals: number = 1): string => {
+    if (value === undefined || value === null || isNaN(value)) return '0'
+    return value.toFixed(decimals)
+  }
+
+  // Safe percentage calculation
+  const calculatePercentage = (part: number, total: number): string => {
+    if (total === 0) return '0'
+    return ((part / total) * 100).toFixed(1)
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading BP readings...</span>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="text-center">
+            <p className="font-medium">Loading BP readings...</p>
+            <p className="text-sm text-muted-foreground">Connecting to backend database</p>
+          </div>
         </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Blood Pressure Readings</h1>
-          <p className="text-muted-foreground">Track and monitor your blood pressure over time</p>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Heart className="h-8 w-8 text-red-500" />
+            Blood Pressure Readings
+          </h1>
+          <p className="text-muted-foreground">
+            Track and monitor your blood pressure over time
+          </p>
         </div>
         <AddBPReadingDialog onAdd={handleAddReading} />
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="dashboard-card cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Readings</CardTitle>
-            <Heart className="h-4 w-4 text-red-500 cursor-pointer" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics?.totalReadings || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Recorded this month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="dashboard-card cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average BP</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500 cursor-pointer" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {statistics?.averageBP ? `${statistics.averageBP.systolic}/${statistics.averageBP.diastolic}` : '--/--'}
+      {/* Error Alert */}
+      {error && (
+        <Alert className="border-red-200 bg-red-50 dark:bg-red-950">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <div className="font-medium">Error loading data:</div>
+              <div className="text-sm">{error}</div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Last 30 days
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Show message if no data */}
+      {!loading && !error && readings.length === 0 && (
+        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+          <CardContent className="p-8 text-center">
+            <Heart className="h-16 w-16 mx-auto mb-4 text-blue-500 opacity-50" />
+            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
+              No BP Readings Yet
+            </h3>
+            <p className="text-blue-600 dark:text-blue-300 mb-4">
+              Get started by adding your first blood pressure reading using the "Add Reading" button above.
             </p>
+            <AddBPReadingDialog onAdd={handleAddReading}>
+              <Button className="cursor-pointer">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Reading
+              </Button>
+            </AddBPReadingDialog>
           </CardContent>
         </Card>
+      )}
 
-        <Card className="dashboard-card cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Normal Readings</CardTitle>
-            <TrendingDown className="h-4 w-4 text-green-500 cursor-pointer" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {statistics?.categoryDistribution?.normal?.percentage || 0}%
+      {/* Rest of the component remains the same when there is data */}
+      {readings.length > 0 && (
+        <>
+          {/* Stats Overview */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card className="dashboard-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Readings</p>
+                    <p className="text-2xl font-bold">{statistics?.totalReadings || readings.length}</p>
+                  </div>
+                  <Activity className="h-8 w-8 text-blue-500" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="dashboard-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Average BP</p>
+                    <p className="text-2xl font-bold">
+                      {statistics && statistics.averageSystolic && statistics.averageDiastolic ? 
+                        `${Math.round(statistics.averageSystolic)}/${Math.round(statistics.averageDiastolic)}` : 
+                       readings.length > 0 ? 
+                        `${Math.round(readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length)}/${Math.round(readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length)}` : 
+                        '--/--'}
+                    </p>
+                  </div>
+                  <Target className="h-8 w-8 text-green-500" />
+                </div>
+                <div className="flex items-center gap-1 mt-2">
+                  {systolicTrend > 0 ? (
+                    <TrendingUp className="h-4 w-4 text-red-500" />
+                  ) : systolicTrend < 0 ? (
+                    <TrendingDown className="h-4 w-4 text-green-500" />
+                  ) : null}
+                  <span className="text-xs text-muted-foreground">
+                    {safeToFixed(Math.abs(systolicTrend), 1)} mmHg trend
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="dashboard-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Normal Readings</p>
+                    <p className="text-2xl font-bold">
+                      {statistics && typeof statistics.normalPercentage === 'number' ? 
+                        `${safeToFixed(statistics.normalPercentage, 0)}%` : 
+                       readings.length > 0 ? 
+                        `${calculatePercentage(readings.filter(r => r.category === 'normal').length, readings.length)}%` :
+                        '0%'}
+                    </p>
+                  </div>
+                  <Heart className="h-8 w-8 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="dashboard-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Latest Reading</p>
+                    <p className="text-2xl font-bold">
+                      {readings.length > 0 ? `${readings[0].systolic}/${readings[0].diastolic}` : '--/--'}
+                    </p>
+                  </div>
+                  <Zap className="h-8 w-8 text-purple-500" />
+                </div>
+                {readings.length > 0 && (
+                  <Badge 
+                    variant="outline" 
+                    className={`mt-2 ${BP_CATEGORIES[readings[0].category as keyof typeof BP_CATEGORIES]?.color} text-white`}
+                  >
+                    {BP_CATEGORIES[readings[0].category as keyof typeof BP_CATEGORIES]?.label}
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Enhanced Charts Section */}
+          <Tabs defaultValue="trend" className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <TabsList>
+                <TabsTrigger value="trend" className="gap-2 cursor-pointer">
+                  <BarChart3 className="h-4 w-4" />
+                  BP Trends
+                </TabsTrigger>
+                <TabsTrigger value="distribution" className="cursor-pointer">Distribution</TabsTrigger>
+              </TabsList>
+              
+              {/* Chart Controls */}
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                  className="px-3 py-1 text-sm border rounded-md cursor-pointer"
+                >
+                  <option value="7">Last 7 days</option>
+                  <option value="30">Last 30 days</option>
+                  <option value="90">Last 3 months</option>
+                  <option value="0">All time</option>
+                </select>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPulse(!showPulse)}
+                  className="cursor-pointer"
+                >
+                  {showPulse ? 'Hide' : 'Show'} Pulse
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTrendlines(!showTrendlines)}
+                  className="cursor-pointer"
+                >
+                  {showTrendlines ? 'Hide' : 'Show'} Trends
+                </Button>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Within normal range
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            
+            <TabsContent value="trend">
+              <Card className="dashboard-card">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      Blood Pressure Trends
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </CardTitle>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span>Systolic</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span>Diastolic</span>
+                      </div>
+                      {showPulse && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                          <span>Pulse</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {chartData.length > 0 ? (
+                    <div className="space-y-4">
+                      <ChartContainer config={chartConfig} className="min-h-[400px]">
+                        <LineChart
+                          accessibilityLayer
+                          data={chartData}
+                          margin={{
+                            left: 12,
+                            right: 12,
+                            top: 12,
+                            bottom: 12,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                          <XAxis
+                            dataKey="date"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            fontSize={12}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                            domain={[50, 180]}
+                            fontSize={12}
+                          />
+                          <Tooltip content={<CustomTooltip />} />
+                          
+                          {/* Reference lines for normal ranges */}
+                          <ReferenceLine y={120} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" strokeWidth={1} />
+                          <ReferenceLine y={80} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" strokeWidth={1} />
+                          <ReferenceLine y={140} stroke="hsl(var(--destructive))" strokeDasharray="3 3" strokeWidth={1} opacity={0.5} />
+                          <ReferenceLine y={90} stroke="hsl(var(--destructive))" strokeDasharray="3 3" strokeWidth={1} opacity={0.5} />
+                          
+                          {/* Moving average trend lines */}
+                          {showTrendlines && (
+                            <>
+                              <Line
+                                dataKey="avgSystolic"
+                                type="monotone"
+                                stroke="hsl(220 70% 50%)"
+                                strokeWidth={1}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                opacity={0.6}
+                              />
+                              <Line
+                                dataKey="avgDiastolic"
+                                type="monotone"
+                                stroke="hsl(160 60% 45%)"
+                                strokeWidth={1}
+                                strokeDasharray="5 5"
+                                dot={false}
+                                opacity={0.6}
+                              />
+                            </>
+                          )}
+                          
+                          {/* Main BP lines */}
+                          <Line
+                            dataKey="systolic"
+                            type="monotone"
+                            stroke="hsl(220 70% 50%)"
+                            strokeWidth={3}
+                            dot={<CustomDot />}
+                            activeDot={{ r: 6, stroke: 'hsl(220 70% 50%)', strokeWidth: 2 }}
+                          />
+                          <Line
+                            dataKey="diastolic"
+                            type="monotone"
+                            stroke="hsl(160 60% 45%)"
+                            strokeWidth={3}
+                            dot={<CustomDot />}
+                            activeDot={{ r: 6, stroke: 'hsl(160 60% 45%)', strokeWidth: 2 }}
+                          />
+                          
+                          {/* Pulse line */}
+                          {showPulse && (
+                            <Line
+                              dataKey="pulse"
+                              type="monotone"
+                              stroke="hsl(280 65% 60%)"
+                              strokeWidth={2}
+                              dot={{ r: 3 }}
+                              activeDot={{ r: 5, stroke: 'hsl(280 65% 60%)', strokeWidth: 2 }}
+                            />
+                          )}
+                          
+                          {/* Brush for time selection */}
+                          {chartData.length > 10 && (
+                            <Brush
+                              dataKey="date"
+                              height={30}
+                              stroke="hsl(var(--primary))"
+                              fill="hsl(var(--muted))"
+                            />
+                          )}
+                        </LineChart>
+                      </ChartContainer>
+                      
+                      {/* Trend Analysis */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                        <div className="space-y-2">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <TrendingUp className="h-4 w-4" />
+                            Trend Analysis
+                          </h4>
+                          <div className="text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span>Systolic trend:</span>
+                              <span className={systolicTrend > 2 ? 'text-red-500' : systolicTrend < -2 ? 'text-green-500' : 'text-muted-foreground'}>
+                                {systolicTrend > 0 ? '+' : ''}{safeToFixed(systolicTrend, 1)} mmHg
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Diastolic trend:</span>
+                              <span className={diastolicTrend > 2 ? 'text-red-500' : diastolicTrend < -2 ? 'text-green-500' : 'text-muted-foreground'}>
+                                {diastolicTrend > 0 ? '+' : ''}{safeToFixed(diastolicTrend, 1)} mmHg
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <Target className="h-4 w-4" />
+                            Target Ranges
+                          </h4>
+                          <div className="text-sm space-y-1 text-muted-foreground">
+                            <div>Normal: &lt;120/80 mmHg</div>
+                            <div>Elevated: 120-129/&lt;80 mmHg</div>
+                            <div>High: ≥130/≥80 mmHg</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <BarChart3 className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                      <p className="text-lg mb-2">No data available for chart</p>
+                      <p className="text-sm">Add your first BP reading to see trends and patterns</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="distribution">
+              <Card className="dashboard-card">
+                <CardHeader>
+                  <CardTitle>Reading Distribution</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {categoryStats.map((stat) => (
+                    <div key={stat.label} className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${stat.color}`}></div>
+                          {stat.label}
+                        </span>
+                        <span className="font-medium">
+                          {stat.count} readings ({safeToFixed(stat.percentage, 1)}%)
+                        </span>
+                      </div>
+                      <Progress value={stat.percentage} className="h-2" />
+                      <div className="text-xs text-muted-foreground">
+                        Range: {stat.range}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
-      {/* Charts Section */}
-      <Tabs defaultValue="trend" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="trend" className="gap-2 cursor-pointer">
-            <BarChart3 className="h-4 w-4" />
-            BP Trends
-          </TabsTrigger>
-          <TabsTrigger value="distribution" className="cursor-pointer">Distribution</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="trend">
+          {/* Filters and Search */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground cursor-pointer" />
+              <Input
+                placeholder="Search readings..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 cursor-pointer"
+              />
+            </div>
+            <select
+              className="px-4 py-2 border rounded-md cursor-pointer"
+              onChange={(e) => {
+                // Handle filter by category
+              }}
+            >
+              <option value="">All Categories</option>
+              {Object.entries(BP_CATEGORIES).map(([key, category]) => (
+                <option key={key} value={key}>{category.label}</option>
+              ))}
+            </select>
+            <Button variant="outline" className="gap-2 cursor-pointer">
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </div>
+
+          {/* Readings List */}
           <Card className="dashboard-card">
             <CardHeader>
-              <CardTitle>Blood Pressure Trends</CardTitle>
+              <CardTitle>Recent Readings ({filteredReadings.length})</CardTitle>
             </CardHeader>
             <CardContent>
-              {chartData.length > 0 ? (
-                <ChartContainer config={chartConfig}>
-                  <LineChart
-                    accessibilityLayer
-                    data={chartData}
-                    margin={{
-                      left: 12,
-                      right: 12,
-                    }}
-                  >
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      domain={[60, 160]}
-                    />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                    <ReferenceLine y={120} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
-                    <ReferenceLine y={80} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
-                    <Line
-                      dataKey="systolic"
-                      type="monotone"
-                      stroke="var(--color-systolic)"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                    />
-                    <Line
-                      dataKey="diastolic"
-                      type="monotone"
-                      stroke="var(--color-diastolic)"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ChartContainer>
-              ) : (
+              {filteredReadings.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p>No data available for chart</p>
+                  <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p>No readings match your search criteria</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredReadings.slice(0, 10).map((reading) => (
+                    <div key={reading._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="text-center">
+                          <div className="text-lg font-bold">
+                            {reading.systolic}/{reading.diastolic}
+                          </div>
+                          <div className="text-xs text-muted-foreground">mmHg</div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm">{new Date(reading.timestamp).toLocaleDateString()}</span>
+                            <Clock className="h-3 w-3 text-muted-foreground ml-2" />
+                            <span className="text-sm">{new Date(reading.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                          
+                          {reading.comments && (
+                            <p className="text-sm text-muted-foreground">{reading.comments}</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant="outline" 
+                          className={`${BP_CATEGORIES[reading.category as keyof typeof BP_CATEGORIES]?.color} text-white`}
+                        >
+                          {BP_CATEGORIES[reading.category as keyof typeof BP_CATEGORIES]?.label}
+                        </Badge>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="cursor-pointer">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="cursor-pointer text-red-600"
+                              onClick={() => handleDeleteReading(reading._id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {filteredReadings.length > 10 && (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <p>Showing 10 of {filteredReadings.length} readings</p>
+                      <Button variant="outline" size="sm" className="mt-2 cursor-pointer">
+                        Load More
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-        
-        <TabsContent value="distribution">
-          <Card className="dashboard-card">
-            <CardHeader>
-              <CardTitle>Reading Distribution</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {categoryStats.map((stat) => (
-                <div key={stat.label} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>{stat.label}</span>
-                    <span>{stat.count} readings ({stat.percentage.toFixed(0)}%)</span>
-                  </div>
-                  <Progress value={stat.percentage} className="h-2" />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground cursor-pointer" />
-          <Input
-            placeholder="Search readings..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 cursor-pointer"
-          />
-        </div>
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 border rounded-md bg-background cursor-pointer"
-        >
-          <option value="all">All Categories</option>
-          {Object.entries(BP_CATEGORIES).map(([key, category]) => (
-            <option key={key} value={key}>{category.label}</option>
-          ))}
-        </select>
-        <Button variant="outline" className="gap-2 cursor-pointer">
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
-      </div>
-
-      {/* Readings List */}
-      <div className="space-y-4">
-        {filteredReadings.length === 0 ? (
-          <Card className="dashboard-card">
-            <CardContent className="text-center py-8">
-              <Heart className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <h3 className="text-lg font-semibold mb-2">No readings found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchQuery || filterCategory !== 'all' 
-                  ? 'Try adjusting your search or filter criteria'
-                  : 'Start tracking your blood pressure by adding your first reading'
-                }
-              </p>
-              {!searchQuery && filterCategory === 'all' && (
-                <AddBPReadingDialog onAdd={handleAddReading} />
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredReadings.map((reading) => (
-              <BPReadingCard
-                key={reading._id}
-                reading={reading}
-                onEdit={handleEditReading}
-                onDelete={handleDeleteReading}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   )
 } 

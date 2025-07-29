@@ -7,7 +7,7 @@ import {
   ChevronUp,
   Home,
   Heart,
-  Calendar,
+
   Bell,
   User2
 } from 'lucide-react'
@@ -53,12 +53,7 @@ const navigationItems = [
     icon: Users,
     badge: 'New',
   },
-  {
-    title: 'Calendar',
-    url: '/calendar',
-    icon: Calendar,
-    badge: null,
-  },
+
   {
     title: 'Notifications',
     url: '/notifications',
