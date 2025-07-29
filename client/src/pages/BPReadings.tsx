@@ -96,17 +96,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
-      <div className="bg-background border rounded-lg p-3 shadow-lg">
-        <p className="font-medium text-sm mb-2">{label}</p>
-        <div className="space-y-1">
+      <div className="bg-background border rounded-lg p-2 sm:p-3 shadow-lg max-w-[200px] sm:max-w-[280px]">
+        <p className="font-medium text-xs sm:text-sm mb-1 sm:mb-2 truncate">{label}</p>
+        <div className="space-y-0.5 sm:space-y-1">
           {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2 text-sm">
+            <div key={index} className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
               <div 
-                className="w-2 h-2 rounded-full" 
+                className="w-2 h-2 rounded-full flex-shrink-0" 
                 style={{ backgroundColor: entry.color }}
               />
-              <span className="text-muted-foreground">{entry.dataKey}:</span>
-              <span className="font-medium">
+              <span className="text-muted-foreground truncate">{entry.dataKey}:</span>
+              <span className="font-medium flex-shrink-0">
                 {entry.value} {entry.dataKey === 'pulse' ? 'bpm' : 'mmHg'}
               </span>
             </div>
@@ -728,13 +728,13 @@ export default function BPReadings() {
             
             <TabsContent value="trend">
               <Card className="dashboard-card">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                       Blood Pressure Trends
                       <Info className="h-4 w-4 text-muted-foreground" />
                     </CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                         <span>Systolic</span>
@@ -751,19 +751,56 @@ export default function BPReadings() {
                       )}
                     </div>
                   </div>
+                  
+                  {/* Chart Controls */}
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
+                    <select
+                      value={selectedPeriod}
+                      onChange={(e) => setSelectedPeriod(e.target.value)}
+                      className="px-3 py-2 text-xs sm:text-sm border rounded-md cursor-pointer bg-background min-w-0 flex-shrink-0"
+                    >
+                      <option value="7">Last 7 days</option>
+                      <option value="30">Last 30 days</option>
+                      <option value="90">Last 3 months</option>
+                      <option value="0">All time</option>
+                    </select>
+                    
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowPulse(!showPulse)}
+                        className="cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 h-auto min-w-0 flex-shrink-0"
+                      >
+                        {showPulse ? 'Hide' : 'Show'} Pulse
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowTrendlines(!showTrendlines)}
+                        className="cursor-pointer text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2 h-auto min-w-0 flex-shrink-0"
+                      >
+                        {showTrendlines ? 'Hide' : 'Show'} Trends
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {chartData.length > 0 ? (
-                    <div className="space-y-4">
-                      <ChartContainer config={chartConfig} className="min-h-[400px]">
+                    <div className="space-y-3">
+                      <ChartContainer 
+                        config={chartConfig} 
+                        className="h-[250px] sm:h-[280px] md:h-[320px] lg:h-[350px] w-full"
+                      >
                         <LineChart
                           accessibilityLayer
                           data={chartData}
                           margin={{
-                            left: 12,
-                            right: 12,
-                            top: 12,
-                            bottom: 12,
+                            left: 8,
+                            right: 8,
+                            top: 16,
+                            bottom: chartData.length > 10 ? 60 : 16,
                           }}
                         >
                           <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -772,16 +809,30 @@ export default function BPReadings() {
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
-                            fontSize={12}
+                            fontSize={10}
+                            interval="preserveStartEnd"
+                            angle={-45}
+                            textAnchor="end"
+                            height={60}
+                            className="text-xs sm:text-sm"
                           />
                           <YAxis
                             tickLine={false}
                             axisLine={false}
                             tickMargin={8}
-                            domain={[50, 180]}
-                            fontSize={12}
+                            fontSize={10}
+                            width={35}
+                            domain={['dataMin - 10', 'dataMax + 10']}
+                            className="text-xs sm:text-sm"
                           />
-                          <Tooltip content={<CustomTooltip />} />
+                          <ChartTooltip
+                            cursor={{ strokeDasharray: '3 3' }}
+                            content={<CustomTooltip />}
+                            wrapperStyle={{ 
+                              maxWidth: '280px',
+                              fontSize: '12px'
+                            }}
+                          />
                           
                           {/* Reference lines for normal ranges */}
                           <ReferenceLine y={120} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" strokeWidth={1} />
@@ -847,46 +898,56 @@ export default function BPReadings() {
                           {chartData.length > 10 && (
                             <Brush
                               dataKey="date"
-                              height={30}
+                              height={25}
                               stroke="hsl(var(--primary))"
                               fill="hsl(var(--muted))"
+                              className="text-xs"
                             />
                           )}
                         </LineChart>
                       </ChartContainer>
                       
                       {/* Trend Analysis */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                        <div className="space-y-2">
-                          <h4 className="font-medium flex items-center gap-2">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-3 border-t">
+                        <div className="space-y-3">
+                          <h4 className="font-medium flex items-center gap-2 text-sm sm:text-base">
                             <TrendingUp className="h-4 w-4" />
                             Trend Analysis
                           </h4>
-                          <div className="text-sm space-y-1">
-                            <div className="flex justify-between">
+                          <div className="text-xs sm:text-sm space-y-2">
+                            <div className="flex justify-between items-center">
                               <span>Systolic trend:</span>
-                              <span className={systolicTrend > 2 ? 'text-red-500' : systolicTrend < -2 ? 'text-green-500' : 'text-muted-foreground'}>
+                              <span className={`font-medium ${systolicTrend > 2 ? 'text-red-500' : systolicTrend < -2 ? 'text-green-500' : 'text-muted-foreground'}`}>
                                 {systolicTrend > 0 ? '+' : ''}{safeToFixed(systolicTrend, 1)} mmHg
                               </span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <span>Diastolic trend:</span>
-                              <span className={diastolicTrend > 2 ? 'text-red-500' : diastolicTrend < -2 ? 'text-green-500' : 'text-muted-foreground'}>
+                              <span className={`font-medium ${diastolicTrend > 2 ? 'text-red-500' : diastolicTrend < -2 ? 'text-green-500' : 'text-muted-foreground'}`}>
                                 {diastolicTrend > 0 ? '+' : ''}{safeToFixed(diastolicTrend, 1)} mmHg
                               </span>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="space-y-2">
-                          <h4 className="font-medium flex items-center gap-2">
+                        <div className="space-y-3">
+                          <h4 className="font-medium flex items-center gap-2 text-sm sm:text-base">
                             <Target className="h-4 w-4" />
                             Target Ranges
                           </h4>
-                          <div className="text-sm space-y-1 text-muted-foreground">
-                            <div>Normal: &lt;120/80 mmHg</div>
-                            <div>Elevated: 120-129/&lt;80 mmHg</div>
-                            <div>High: ≥130/≥80 mmHg</div>
+                          <div className="text-xs sm:text-sm space-y-2 text-muted-foreground">
+                            <div className="flex justify-between items-center">
+                              <span>Normal:</span>
+                              <span>&lt;120/80 mmHg</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>Elevated:</span>
+                              <span>120-129/&lt;80 mmHg</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span>High:</span>
+                              <span>≥130/≥80 mmHg</span>
+                            </div>
                           </div>
                         </div>
                       </div>
