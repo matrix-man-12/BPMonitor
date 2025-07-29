@@ -516,13 +516,194 @@ const deleteFamilyGroup = async (req, res) => {
   }
 };
 
+// Get invite preview information
+const getInvitePreview = async (req, res) => {
+  try {
+    const { inviteCode } = req.params;
+
+    if (!inviteCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invite code is required'
+      });
+    }
+
+    const familyGroup = await FamilyGroup.findByInviteCode(inviteCode)
+      .populate('adminId', 'firstName lastName')
+      .select('name description inviteExpiry stats members adminId');
+
+    if (!familyGroup) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid invite code'
+      });
+    }
+
+    if (!familyGroup.isInviteValid()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invite link has expired'
+      });
+    }
+
+    // Return preview information (no sensitive data)
+    res.json({
+      success: true,
+      data: {
+        groupName: familyGroup.name,
+        description: familyGroup.description,
+        adminName: `${familyGroup.adminId.firstName} ${familyGroup.adminId.lastName}`,
+        memberCount: familyGroup.members.length,
+        expiresAt: familyGroup.inviteExpiry,
+        isExpired: !familyGroup.isInviteValid()
+      }
+    });
+  } catch (error) {
+    console.error('Get invite preview error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get invite preview'
+    });
+  }
+};
+
+// Generate shareable invite link
+const generateInviteLink = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = req.user._id;
+
+    const familyGroup = await FamilyGroup.findById(groupId);
+
+    if (!familyGroup) {
+      return res.status(404).json({
+        success: false,
+        message: 'Family group not found'
+      });
+    }
+
+    // Check if user is admin or has permission to invite
+    const member = familyGroup.members.find(m => 
+      m.userId.toString() === userId.toString()
+    );
+
+    if (!member || (!familyGroup.isAdmin(userId) && !member.permissions.canInviteMembers)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to generate invite links'
+      });
+    }
+
+    // Regenerate invite code and expiry
+    const newInviteCode = familyGroup.regenerateInviteCode();
+    await familyGroup.save();
+
+    // Generate the full invite link
+    const baseUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const inviteLink = `${baseUrl}/family/join/${newInviteCode}`;
+
+    res.json({
+      success: true,
+      message: 'Invite link generated successfully',
+      data: {
+        inviteCode: newInviteCode,
+        inviteLink,
+        expiresAt: familyGroup.inviteExpiry,
+        expiresIn: '24 hours'
+      }
+    });
+  } catch (error) {
+    console.error('Generate invite link error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate invite link'
+    });
+  }
+};
+
+// Join family group using invite link (different from code)
+const joinFamilyGroupByLink = async (req, res) => {
+  try {
+    const { inviteCode } = req.params;
+    const userId = req.user._id;
+
+    if (!inviteCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invite code is required'
+      });
+    }
+
+    const familyGroup = await FamilyGroup.findByInviteCode(inviteCode);
+
+    if (!familyGroup) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invalid invite link'
+      });
+    }
+
+    if (!familyGroup.isInviteValid()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invite link has expired'
+      });
+    }
+
+    // Check if user is already a member
+    if (familyGroup.isMember(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are already a member of this family group'
+      });
+    }
+
+    // Add user as member
+    familyGroup.addMember(userId);
+    await familyGroup.save();
+
+    // Update user's family groups
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { familyGroups: familyGroup._id }
+    });
+
+    const updatedGroup = await FamilyGroup.findById(familyGroup._id)
+      .populate('adminId', 'firstName lastName email')
+      .populate('members.userId', 'firstName lastName email');
+
+    res.json({
+      success: true,
+      message: 'Successfully joined family group',
+      data: updatedGroup
+    });
+  } catch (error) {
+    console.error('Join family group by link error:', error);
+    
+    if (error.message.includes('already a member') || 
+        error.message.includes('maximum member limit')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to join family group'
+    });
+  }
+};
+
 module.exports = {
   createFamilyGroup,
   getUserFamilyGroups,
   getFamilyGroup,
   updateFamilyGroup,
   generateInviteCode,
+  generateInviteLink,
+  getInvitePreview,
   joinFamilyGroup,
+  joinFamilyGroupByLink,
   removeMember,
   updateMemberPermissions,
   leaveFamilyGroup,

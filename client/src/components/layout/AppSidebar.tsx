@@ -91,8 +91,8 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+            <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white cursor-pointer">
                 <Activity className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -114,15 +114,15 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={isActive(item.url)}
-                    className="w-full justify-start"
+                    className="w-full justify-start cursor-pointer"
                   >
-                    <Link to={item.url} className="flex items-center">
+                    <Link to={item.url} className="flex items-center cursor-pointer">
                       <item.icon className="size-4" />
                       <span>{item.title}</span>
                       {item.badge && (
                         <Badge 
                           variant={item.badge === 'New' ? 'default' : 'secondary'} 
-                          className="ml-auto h-5 text-xs"
+                          className="ml-auto h-5 text-xs cursor-pointer"
                         >
                           {item.badge}
                         </Badge>
@@ -144,9 +144,9 @@ export function AppSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={isActive(item.url)}
-                    className="w-full justify-start"
+                    className="w-full justify-start cursor-pointer"
                   >
-                    <Link to={item.url} className="flex items-center">
+                    <Link to={item.url} className="flex items-center cursor-pointer">
                       <item.icon className="size-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -165,11 +165,11 @@ export function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
                 >
-                  <Avatar className="size-8">
+                  <Avatar className="size-8 cursor-pointer">
                     <AvatarImage src="" alt={user?.firstName} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white cursor-pointer">
                       {user?.firstName?.[0]}{user?.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
@@ -181,7 +181,7 @@ export function AppSidebar() {
                       {user?.email}
                     </span>
                   </div>
-                  <ChevronUp className="ml-auto size-4" />
+                  <ChevronUp className="ml-auto size-4 cursor-pointer" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent

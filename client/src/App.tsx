@@ -3,6 +3,7 @@ import { SidebarProvider } from '@/components/ui/sidebar'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Dashboard } from '@/pages/Dashboard'
 import { FamilyGroups } from '@/pages/FamilyGroups'
+import { FamilyInvite } from '@/pages/FamilyInvite'
 import { Profile } from '@/pages/Profile'
 import { BPReadings } from '@/pages/BPReadings'
 import { Login } from '@/pages/Login'
@@ -24,6 +25,9 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Public invite route - accessible to all */}
+        <Route path="/family/join/:inviteCode" element={<FamilyInvite />} />
+        
         {/* Public routes - only show when not authenticated */}
         {!isAuthenticated && (
           <>

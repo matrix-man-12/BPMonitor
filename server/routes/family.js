@@ -5,7 +5,10 @@ const {
   getFamilyGroup,
   updateFamilyGroup,
   generateInviteCode,
+  generateInviteLink,
+  getInvitePreview,
   joinFamilyGroup,
+  joinFamilyGroupByLink,
   removeMember,
   updateMemberPermissions,
   leaveFamilyGroup,
@@ -15,7 +18,10 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// All family routes require authentication
+// Public routes (no authentication required)
+router.get('/invite-preview/:inviteCode', getInvitePreview); // Get invite preview (public)
+
+// All other family routes require authentication
 router.use(authenticateToken);
 
 // Family group management
@@ -26,8 +32,10 @@ router.put('/:groupId', updateFamilyGroup);             // Update family group
 router.delete('/:groupId', deleteFamilyGroup);          // Delete family group
 
 // Invite management
-router.post('/:groupId/invite', generateInviteCode);    // Generate new invite code
-router.post('/join', joinFamilyGroup);                  // Join family group with invite code
+router.post('/:groupId/invite', generateInviteCode);        // Generate new invite code
+router.post('/:groupId/invite-link', generateInviteLink);   // Generate shareable invite link
+router.post('/join', joinFamilyGroup);                      // Join family group with invite code
+router.post('/join/:inviteCode', joinFamilyGroupByLink);    // Join family group with invite link
 
 // Member management
 router.delete('/:groupId/members/:memberId', removeMember);              // Remove member

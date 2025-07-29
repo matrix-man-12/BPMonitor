@@ -18,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 const authRoutes = require('./routes/auth');
 const familyRoutes = require('./routes/family');
+const bpReadingRoutes = require('./routes/bpReadings');
 
 // Basic route
 app.get('/', (req, res) => {
@@ -28,6 +29,7 @@ app.get('/', (req, res) => {
       health: '/health',
       auth: '/api/auth',
       family: '/api/family',
+      bpReadings: '/api/bp-readings',
       documentation: 'Coming soon...'
     }
   });
@@ -46,6 +48,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/family', familyRoutes);
+app.use('/api/bp-readings', bpReadingRoutes);
 
 // Error handling middleware (should be last)
 app.use(errorHandler);

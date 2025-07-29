@@ -28,7 +28,8 @@ import {
   Edit,
   Trash2,
   AlertTriangle,
-  BarChart3
+  BarChart3,
+  Loader2
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -38,17 +39,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, ReferenceLine } from 'recharts'
-
-interface BPReading {
-  _id: string
-  systolic: number
-  diastolic: number
-  pulseRate?: number
-  timestamp: string
-  comments?: string
-  category: 'normal' | 'elevated' | 'high-stage-1' | 'high-stage-2' | 'hypertensive-crisis'
-  createdAt: string
-}
+import bpReadingService, { 
+  type BPReading, 
+  type CreateBPReadingData, 
+  type BPStatistics, 
+  type BPCategoryInfo 
+} from '@/services/bpReadingService'
 
 const BP_CATEGORIES = {
   'normal': { label: 'Normal', color: 'bg-green-500', range: '<120 and <80' },
@@ -57,66 +53,6 @@ const BP_CATEGORIES = {
   'high-stage-2': { label: 'High Stage 2', color: 'bg-red-500', range: '140-179 or 90-119' },
   'hypertensive-crisis': { label: 'Hypertensive Crisis', color: 'bg-red-700', range: '>180 or >120' }
 }
-
-// Mock data - will be replaced with API calls
-const mockReadings: BPReading[] = [
-  {
-    _id: '1',
-    systolic: 120,
-    diastolic: 80,
-    pulseRate: 72,
-    timestamp: '2024-01-28T08:30:00Z',
-    comments: 'Morning reading, feeling good',
-    category: 'normal',
-    createdAt: '2024-01-28T08:30:00Z'
-  },
-  {
-    _id: '2',
-    systolic: 135,
-    diastolic: 85,
-    pulseRate: 78,
-    timestamp: '2024-01-27T20:15:00Z',
-    comments: 'Evening reading after dinner',
-    category: 'high-stage-1',
-    createdAt: '2024-01-27T20:15:00Z'
-  },
-  {
-    _id: '3',
-    systolic: 118,
-    diastolic: 75,
-    pulseRate: 68,
-    timestamp: '2024-01-27T08:45:00Z',
-    category: 'normal',
-    createdAt: '2024-01-27T08:45:00Z'
-  },
-  {
-    _id: '4',
-    systolic: 125,
-    diastolic: 82,
-    pulseRate: 74,
-    timestamp: '2024-01-26T09:00:00Z',
-    category: 'elevated',
-    createdAt: '2024-01-26T09:00:00Z'
-  },
-  {
-    _id: '5',
-    systolic: 115,
-    diastolic: 70,
-    pulseRate: 65,
-    timestamp: '2024-01-25T08:30:00Z',
-    category: 'normal',
-    createdAt: '2024-01-25T08:30:00Z'
-  },
-  {
-    _id: '6',
-    systolic: 130,
-    diastolic: 88,
-    pulseRate: 76,
-    timestamp: '2024-01-24T19:45:00Z',
-    category: 'high-stage-1',
-    createdAt: '2024-01-24T19:45:00Z'
-  }
-]
 
 const chartConfig = {
   systolic: {
@@ -133,7 +69,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' | 'createdAt'>) => void }) {
+function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) => void }) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState({
     systolic: '',
@@ -143,6 +79,7 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' 
     timestamp: new Date().toISOString().slice(0, 16)
   })
   const [errors, setErrors] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
 
   const validateForm = () => {
     const newErrors: string[] = []
@@ -163,47 +100,47 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' 
     return newErrors.length === 0
   }
 
-  const categorizeReading = (systolic: number, diastolic: number): BPReading['category'] => {
-    if (systolic >= 180 || diastolic >= 120) return 'hypertensive-crisis'
-    if (systolic >= 140 || diastolic >= 90) return 'high-stage-2'
-    if (systolic >= 130 || diastolic >= 80) return 'high-stage-1'
-    if (systolic >= 120 && diastolic < 80) return 'elevated'
-    return 'normal'
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) return
 
-    const systolic = parseInt(formData.systolic)
-    const diastolic = parseInt(formData.diastolic)
+    setSubmitting(true)
     
-    const newReading: Omit<BPReading, '_id' | 'createdAt'> = {
-      systolic,
-      diastolic,
-      pulseRate: formData.pulseRate ? parseInt(formData.pulseRate) : undefined,
-      timestamp: formData.timestamp,
-      comments: formData.comments || undefined,
-      category: categorizeReading(systolic, diastolic)
-    }
+    try {
+      const systolic = parseInt(formData.systolic)
+      const diastolic = parseInt(formData.diastolic)
+      
+      const newReading: CreateBPReadingData = {
+        systolic,
+        diastolic,
+        pulseRate: formData.pulseRate ? parseInt(formData.pulseRate) : undefined,
+        timestamp: formData.timestamp,
+        comments: formData.comments || undefined
+      }
 
-    onAdd(newReading)
-    setOpen(false)
-    setFormData({
-      systolic: '',
-      diastolic: '',
-      pulseRate: '',
-      comments: '',
-      timestamp: new Date().toISOString().slice(0, 16)
-    })
-    setErrors([])
+      await onAdd(newReading)
+      setOpen(false)
+      setFormData({
+        systolic: '',
+        diastolic: '',
+        pulseRate: '',
+        comments: '',
+        timestamp: new Date().toISOString().slice(0, 16)
+      })
+      setErrors([])
+    } catch (error) {
+      console.error('Error adding reading:', error)
+      setErrors(['Failed to add reading. Please try again.'])
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="gap-2 cursor-pointer">
           <Plus className="h-4 w-4" />
           Add Reading
         </Button>
@@ -228,7 +165,7 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' 
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="systolic" className="text-sm font-medium">
+              <label htmlFor="systolic" className="text-sm font-medium cursor-pointer">
                 Systolic (mmHg)
               </label>
               <Input
@@ -237,11 +174,13 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' 
                 placeholder="120"
                 value={formData.systolic}
                 onChange={(e) => setFormData({ ...formData, systolic: e.target.value })}
+                className="cursor-pointer"
+                disabled={submitting}
                 required
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="diastolic" className="text-sm font-medium">
+              <label htmlFor="diastolic" className="text-sm font-medium cursor-pointer">
                 Diastolic (mmHg)
               </label>
               <Input
@@ -250,13 +189,15 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' 
                 placeholder="80"
                 value={formData.diastolic}
                 onChange={(e) => setFormData({ ...formData, diastolic: e.target.value })}
+                className="cursor-pointer"
+                disabled={submitting}
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="pulseRate" className="text-sm font-medium">
+            <label htmlFor="pulseRate" className="text-sm font-medium cursor-pointer">
               Pulse Rate (bpm) - Optional
             </label>
             <Input
@@ -265,11 +206,13 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' 
               placeholder="72"
               value={formData.pulseRate}
               onChange={(e) => setFormData({ ...formData, pulseRate: e.target.value })}
+              className="cursor-pointer"
+              disabled={submitting}
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="timestamp" className="text-sm font-medium">
+            <label htmlFor="timestamp" className="text-sm font-medium cursor-pointer">
               Date & Time
             </label>
             <Input
@@ -277,12 +220,14 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' 
               type="datetime-local"
               value={formData.timestamp}
               onChange={(e) => setFormData({ ...formData, timestamp: e.target.value })}
+              className="cursor-pointer"
+              disabled={submitting}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="comments" className="text-sm font-medium">
+            <label htmlFor="comments" className="text-sm font-medium cursor-pointer">
               Comments - Optional
             </label>
             <Input
@@ -290,15 +235,34 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: Omit<BPReading, '_id' 
               placeholder="e.g., after exercise, morning reading..."
               value={formData.comments}
               onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+              className="cursor-pointer"
+              disabled={submitting}
             />
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setOpen(false)} 
+              className="flex-1 cursor-pointer"
+              disabled={submitting}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Add Reading
+            <Button 
+              type="submit" 
+              className="flex-1 cursor-pointer" 
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                'Add Reading'
+              )}
             </Button>
           </div>
         </form>
@@ -316,11 +280,11 @@ function BPReadingCard({ reading, onEdit, onDelete }: {
   const readingDate = new Date(reading.timestamp)
 
   return (
-    <Card className="dashboard-card hover:scale-[1.02] transition-transform">
+    <Card className="dashboard-card hover:scale-[1.02] transition-transform cursor-pointer">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-pink-500 text-white">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-pink-500 text-white cursor-pointer">
               <Heart className="h-6 w-6" />
             </div>
             <div>
@@ -337,21 +301,21 @@ function BPReadingCard({ reading, onEdit, onDelete }: {
           </div>
           
           <div className="flex items-center gap-2">
-            <Badge className={`${category.color} text-white`}>
+            <Badge className={`${category.color} text-white cursor-pointer`}>
               {category.label}
             </Badge>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="cursor-pointer">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(reading)}>
+                <DropdownMenuItem onClick={() => onEdit(reading)} className="cursor-pointer">
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDelete(reading._id)} className="text-red-600">
+                <DropdownMenuItem onClick={() => onDelete(reading._id)} className="text-red-600 cursor-pointer">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
@@ -382,10 +346,40 @@ function BPReadingCard({ reading, onEdit, onDelete }: {
 }
 
 export function BPReadings() {
-  const [readings, setReadings] = useState<BPReading[]>(mockReadings)
+  const [readings, setReadings] = useState<BPReading[]>([])
+  const [statistics, setStatistics] = useState<BPStatistics | null>(null)
+  const [categories, setCategories] = useState<Record<string, BPCategoryInfo>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [filterCategory, setFilterCategory] = useState<string>('all')
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const [readingsData, statisticsData, categoriesData] = await Promise.all([
+          bpReadingService.getReadings({ limit: 50, sortBy: 'timestamp', sortOrder: 'desc' }),
+          bpReadingService.getStatistics('30d'),
+          bpReadingService.getCategories()
+        ])
+        
+        setReadings(readingsData.readings)
+        setStatistics(statisticsData)
+        setCategories(categoriesData)
+      } catch (error) {
+        console.error('Failed to fetch BP data:', error)
+        setError('Failed to load BP readings. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const filteredReadings = readings.filter(reading => {
     const matchesSearch = reading.comments?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -394,29 +388,40 @@ export function BPReadings() {
     return matchesSearch && matchesCategory
   })
 
-  const handleAddReading = (newReading: Omit<BPReading, '_id' | 'createdAt'>) => {
-    const reading: BPReading = {
-      ...newReading,
-      _id: Date.now().toString(),
-      createdAt: new Date().toISOString()
+  const handleAddReading = async (newReading: CreateBPReadingData) => {
+    try {
+      const savedReading = await bpReadingService.createReading(newReading)
+      setReadings([savedReading, ...readings])
+      
+      // Refresh statistics
+      const updatedStats = await bpReadingService.getStatistics('30d')
+      setStatistics(updatedStats)
+    } catch (error) {
+      console.error('Failed to add reading:', error)
+      throw error // Re-throw to be handled by the dialog
     }
-    setReadings([reading, ...readings])
   }
 
-  const handleEditReading = (reading: BPReading) => {
-    // TODO: Implement edit functionality
+  const handleEditReading = async (reading: BPReading) => {
+    // TODO: Implement edit functionality with a dialog
     console.log('Edit reading:', reading)
   }
 
-  const handleDeleteReading = (id: string) => {
-    setReadings(readings.filter(r => r._id !== id))
+  const handleDeleteReading = async (id: string) => {
+    try {
+      await bpReadingService.deleteReading(id)
+      setReadings(readings.filter(r => r._id !== id))
+      
+      // Refresh statistics
+      const updatedStats = await bpReadingService.getStatistics('30d')
+      setStatistics(updatedStats)
+    } catch (error) {
+      console.error('Failed to delete reading:', error)
+      // TODO: Show error message to user
+    }
   }
 
-  const averageBP = readings.length > 0 ? {
-    systolic: Math.round(readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length),
-    diastolic: Math.round(readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length)
-  } : null
-
+  // Calculate category stats from current readings
   const categoryStats = Object.entries(BP_CATEGORIES).map(([key, category]) => ({
     ...category,
     count: readings.filter(r => r.category === key).length,
@@ -434,6 +439,28 @@ export function BPReadings() {
       fullDate: reading.timestamp
     }))
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading BP readings...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -447,27 +474,27 @@ export function BPReadings() {
 
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="dashboard-card">
+        <Card className="dashboard-card cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Readings</CardTitle>
-            <Heart className="h-4 w-4 text-red-500" />
+            <Heart className="h-4 w-4 text-red-500 cursor-pointer" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{readings.length}</div>
+            <div className="text-2xl font-bold">{statistics?.totalReadings || 0}</div>
             <p className="text-xs text-muted-foreground">
               Recorded this month
             </p>
           </CardContent>
         </Card>
 
-        <Card className="dashboard-card">
+        <Card className="dashboard-card cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Average BP</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500" />
+            <TrendingUp className="h-4 w-4 text-blue-500 cursor-pointer" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {averageBP ? `${averageBP.systolic}/${averageBP.diastolic}` : '--/--'}
+              {statistics?.averageBP ? `${statistics.averageBP.systolic}/${statistics.averageBP.diastolic}` : '--/--'}
             </div>
             <p className="text-xs text-muted-foreground">
               Last 30 days
@@ -475,14 +502,14 @@ export function BPReadings() {
           </CardContent>
         </Card>
 
-        <Card className="dashboard-card">
+        <Card className="dashboard-card cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Normal Readings</CardTitle>
-            <TrendingDown className="h-4 w-4 text-green-500" />
+            <TrendingDown className="h-4 w-4 text-green-500 cursor-pointer" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {categoryStats.find(s => s.count && readings.filter(r => r.category === 'normal').length)?.percentage.toFixed(0) || 0}%
+              {statistics?.categoryDistribution?.normal?.percentage || 0}%
             </div>
             <p className="text-xs text-muted-foreground">
               Within normal range
@@ -494,11 +521,11 @@ export function BPReadings() {
       {/* Charts Section */}
       <Tabs defaultValue="trend" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="trend" className="gap-2">
+          <TabsTrigger value="trend" className="gap-2 cursor-pointer">
             <BarChart3 className="h-4 w-4" />
             BP Trends
           </TabsTrigger>
-          <TabsTrigger value="distribution">Distribution</TabsTrigger>
+          <TabsTrigger value="distribution" className="cursor-pointer">Distribution</TabsTrigger>
         </TabsList>
         
         <TabsContent value="trend">
@@ -507,47 +534,54 @@ export function BPReadings() {
               <CardTitle>Blood Pressure Trends</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={chartConfig}>
-                <LineChart
-                  accessibilityLayer
-                  data={chartData}
-                  margin={{
-                    left: 12,
-                    right: 12,
-                  }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    domain={[60, 160]}
-                  />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                  <ReferenceLine y={120} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
-                  <ReferenceLine y={80} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
-                  <Line
-                    dataKey="systolic"
-                    type="monotone"
-                    stroke="var(--color-systolic)"
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                  />
-                  <Line
-                    dataKey="diastolic"
-                    type="monotone"
-                    stroke="var(--color-diastolic)"
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ChartContainer>
+              {chartData.length > 0 ? (
+                <ChartContainer config={chartConfig}>
+                  <LineChart
+                    accessibilityLayer
+                    data={chartData}
+                    margin={{
+                      left: 12,
+                      right: 12,
+                    }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      domain={[60, 160]}
+                    />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                    <ReferenceLine y={120} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
+                    <ReferenceLine y={80} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
+                    <Line
+                      dataKey="systolic"
+                      type="monotone"
+                      stroke="var(--color-systolic)"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                    />
+                    <Line
+                      dataKey="diastolic"
+                      type="monotone"
+                      stroke="var(--color-diastolic)"
+                      strokeWidth={2}
+                      dot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ChartContainer>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <p>No data available for chart</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -575,25 +609,25 @@ export function BPReadings() {
       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground cursor-pointer" />
           <Input
             placeholder="Search readings..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 cursor-pointer"
           />
         </div>
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 border rounded-md bg-background"
+          className="px-3 py-2 border rounded-md bg-background cursor-pointer"
         >
           <option value="all">All Categories</option>
           {Object.entries(BP_CATEGORIES).map(([key, category]) => (
             <option key={key} value={key}>{category.label}</option>
           ))}
         </select>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 cursor-pointer">
           <Download className="h-4 w-4" />
           Export
         </Button>

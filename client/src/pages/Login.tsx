@@ -61,7 +61,7 @@ export function Login() {
         {/* Logo & Header */}
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg cursor-pointer">
               <Activity className="h-8 w-8" />
             </div>
           </div>
@@ -86,7 +86,7 @@ export function Login() {
               )}
 
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">Email Address</label>
+                <label htmlFor="email" className="text-sm font-medium cursor-pointer">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -95,7 +95,7 @@ export function Login() {
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 cursor-pointer"
                     required
                     disabled={loading}
                     autoComplete="email"
@@ -104,7 +104,7 @@ export function Login() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">Password</label>
+                <label htmlFor="password" className="text-sm font-medium cursor-pointer">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -113,7 +113,7 @@ export function Login() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10"
+                    className="pl-10 pr-10 cursor-pointer"
                     required
                     disabled={loading}
                     autoComplete="current-password"
@@ -122,7 +122,7 @@ export function Login() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={loading}
                     tabIndex={-1}
@@ -139,7 +139,7 @@ export function Login() {
               <div className="flex items-center justify-between text-sm">
                 <Link 
                   to="/forgot-password" 
-                  className="text-primary hover:underline"
+                  className="text-primary hover:underline cursor-pointer"
                   tabIndex={loading ? -1 : 0}
                 >
                   Forgot password?
@@ -148,7 +148,7 @@ export function Login() {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 cursor-pointer"
                 disabled={loading}
               >
                 {loading ? 'Signing In...' : 'Sign In'}
@@ -168,7 +168,7 @@ export function Login() {
               <Button 
                 type="button" 
                 variant="outline" 
-                className="w-full"
+                className="w-full cursor-pointer"
                 disabled={loading}
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@ export function Login() {
           <span className="text-muted-foreground">Don't have an account? </span>
           <Link 
             to="/register" 
-            className="text-primary hover:underline font-medium"
+            className="text-primary hover:underline font-medium cursor-pointer"
           >
             Sign up
           </Link>
@@ -223,6 +223,7 @@ export function Login() {
                 size="sm" 
                 onClick={fillDemoCredentials}
                 disabled={loading}
+                className="cursor-pointer"
               >
                 Fill Demo Credentials
               </Button>

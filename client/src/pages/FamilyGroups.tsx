@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Users, 
   Plus, 
@@ -16,44 +17,23 @@ import {
   Heart,
   MoreVertical,
   Shield,
-  Trash2
+  Trash2,
+  Share2,
+  Link,
+  CheckCircle,
+  AlertTriangle,
+  Loader2,
+  RefreshCw
 } from 'lucide-react'
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import axios from 'axios'
+import familyService, { type FamilyGroup, type CreateFamilyGroupData, type InviteLinkData } from '@/services/familyService'
 import { useAuth } from '@/hooks/useAuth'
-
-interface FamilyGroup {
-  _id: string
-  name: string
-  description: string
-  inviteCode: string
-  adminId: string
-  members: Array<{
-    userId: {
-      _id: string
-      firstName: string
-      lastName: string
-      email: string
-    }
-    role: 'admin' | 'member'
-    permissions: {
-      canViewAll: boolean
-      canAddReadings: boolean
-      canInvite: boolean
-    }
-    joinedAt: string
-  }>
-  stats: {
-    totalMembers: number
-    totalReadings: number
-  }
-  createdAt: string
-}
 
 export function FamilyGroups() {
   const { user } = useAuth()
@@ -61,9 +41,14 @@ export function FamilyGroups() {
   const [loading, setLoading] = useState(true)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [joinDialogOpen, setJoinDialogOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [selectedGroup, setSelectedGroup] = useState<FamilyGroup | null>(null)
+  const [inviteLink, setInviteLink] = useState<InviteLinkData | null>(null)
   const [newGroupName, setNewGroupName] = useState('')
   const [newGroupDescription, setNewGroupDescription] = useState('')
   const [joinCode, setJoinCode] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     fetchFamilyGroups()
@@ -71,12 +56,13 @@ export function FamilyGroups() {
 
   const fetchFamilyGroups = async () => {
     try {
-      const response = await axios.get('/api/family')
-      if (response.data.success) {
-        setFamilyGroups(response.data.data)
-      }
-    } catch (error) {
+      setLoading(true)
+      setError(null)
+      const groups = await familyService.getFamilyGroups()
+      setFamilyGroups(groups)
+    } catch (error: any) {
       console.error('Failed to fetch family groups:', error)
+      setError(error.message || 'Failed to fetch family groups')
     } finally {
       setLoading(false)
     }
@@ -84,41 +70,84 @@ export function FamilyGroups() {
 
   const createFamilyGroup = async () => {
     try {
-      const response = await axios.post('/api/family', {
+      setError(null)
+      const groupData: CreateFamilyGroupData = {
         name: newGroupName,
-        description: newGroupDescription
-      })
-      
-      if (response.data.success) {
-        setFamilyGroups([...familyGroups, response.data.data])
-        setCreateDialogOpen(false)
-        setNewGroupName('')
-        setNewGroupDescription('')
+        description: newGroupDescription || undefined
       }
-    } catch (error) {
+      
+      const newGroup = await familyService.createFamilyGroup(groupData)
+      setFamilyGroups([...familyGroups, newGroup])
+      setCreateDialogOpen(false)
+      setNewGroupName('')
+      setNewGroupDescription('')
+      setSuccess('Family group created successfully!')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error: any) {
       console.error('Failed to create family group:', error)
+      setError(error.message || 'Failed to create family group')
     }
   }
 
   const joinFamilyGroup = async () => {
     try {
-      const response = await axios.post('/api/family/join', {
-        inviteCode: joinCode
-      })
-      
-      if (response.data.success) {
-        fetchFamilyGroups() // Refresh the list
-        setJoinDialogOpen(false)
-        setJoinCode('')
-      }
-    } catch (error) {
+      setError(null)
+      await familyService.joinFamilyGroup(joinCode)
+      await fetchFamilyGroups() // Refresh the list
+      setJoinDialogOpen(false)
+      setJoinCode('')
+      setSuccess('Successfully joined family group!')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error: any) {
       console.error('Failed to join family group:', error)
+      setError(error.message || 'Failed to join family group')
     }
   }
 
-  const copyInviteCode = (code: string) => {
-    navigator.clipboard.writeText(code)
-    // You could add a toast notification here
+  const generateShareableLink = async (group: FamilyGroup) => {
+    try {
+      setError(null)
+      setSelectedGroup(group)
+      const linkData = await familyService.generateInviteLink(group._id)
+      setInviteLink(linkData)
+      setShareDialogOpen(true)
+    } catch (error: any) {
+      console.error('Failed to generate invite link:', error)
+      setError(error.message || 'Failed to generate invite link')
+    }
+  }
+
+  const copyInviteCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setSuccess('Invite code copied to clipboard!')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error) {
+      console.error('Failed to copy invite code:', error)
+      setError('Failed to copy invite code')
+    }
+  }
+
+  const copyInviteLink = async (link: string) => {
+    try {
+      await familyService.copyInviteLink(link)
+      setSuccess('Invite link copied to clipboard!')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error) {
+      console.error('Failed to copy invite link:', error)
+      setError('Failed to copy invite link')
+    }
+  }
+
+  const shareInviteLink = async (link: string, groupName: string) => {
+    try {
+      await familyService.shareInviteLink(link, groupName)
+      setSuccess('Invite link shared!')
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error) {
+      console.error('Failed to share invite link:', error)
+      setError('Failed to share invite link')
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -148,7 +177,7 @@ export function FamilyGroups() {
         <div className="flex gap-2">
           <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 cursor-pointer">
                 <UserPlus className="h-4 w-4" />
                 Join Group
               </Button>
@@ -166,7 +195,7 @@ export function FamilyGroups() {
                     onChange={(e) => setJoinCode(e.target.value)}
                   />
                 </div>
-                <Button onClick={joinFamilyGroup} className="w-full">
+                <Button onClick={joinFamilyGroup} className="w-full cursor-pointer">
                   Join Group
                 </Button>
               </div>
@@ -175,7 +204,7 @@ export function FamilyGroups() {
 
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2 cursor-pointer">
                 <Plus className="h-4 w-4" />
                 Create Group
               </Button>
@@ -201,7 +230,7 @@ export function FamilyGroups() {
                     onChange={(e) => setNewGroupDescription(e.target.value)}
                   />
                 </div>
-                <Button onClick={createFamilyGroup} className="w-full">
+                <Button onClick={createFamilyGroup} className="w-full cursor-pointer">
                   Create Group
                 </Button>
               </div>
@@ -209,6 +238,79 @@ export function FamilyGroups() {
           </Dialog>
         </div>
       </div>
+
+      {/* Success/Error Messages */}
+      {success && (
+        <Alert className="border-green-200 bg-green-50 text-green-800">
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      )}
+      
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Share Invite Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Family Group Invite</DialogTitle>
+          </DialogHeader>
+          {selectedGroup && inviteLink && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-muted/30">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{selectedGroup.name}</div>
+                    <div className="text-sm text-muted-foreground">Family Group</div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Invite Link</div>
+                  <div className="p-2 rounded border bg-background text-sm break-all font-mono">
+                    {inviteLink.inviteLink}
+                  </div>
+                </div>
+                
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>Expires in {inviteLink.expiresIn}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => copyInviteLink(inviteLink.inviteLink)} 
+                  className="flex-1 gap-2 cursor-pointer"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy Link
+                </Button>
+                <Button 
+                  onClick={() => shareInviteLink(inviteLink.inviteLink, selectedGroup.name)} 
+                  variant="outline"
+                  className="flex-1 gap-2 cursor-pointer"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+              </div>
+
+              <div className="text-xs text-muted-foreground text-center">
+                This link will expire in 24 hours and can be used by anyone to join your family group.
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Family Groups Grid */}
       {familyGroups.length === 0 ? (
@@ -262,17 +364,22 @@ export function FamilyGroups() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => copyInviteCode(group.inviteCode)}>
+                        <DropdownMenuItem onClick={() => generateShareableLink(group)} className="cursor-pointer">
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Share Invite Link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => copyInviteCode(group.inviteCode)} className="cursor-pointer">
                           <Copy className="h-4 w-4 mr-2" />
                           Copy Invite Code
                         </DropdownMenuItem>
                         {isAdmin && (
                           <>
-                            <DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="cursor-pointer">
                               <Settings className="h-4 w-4 mr-2" />
                               Group Settings
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem className="text-red-600 cursor-pointer">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete Group
                             </DropdownMenuItem>

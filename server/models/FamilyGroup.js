@@ -16,7 +16,10 @@ const familyGroupSchema = new mongoose.Schema({
   inviteCode: {
     type: String,
     unique: true,
-    required: true
+    required: true,
+    default: function() {
+      return crypto.randomBytes(4).toString('hex').toUpperCase();
+    }
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -86,7 +89,7 @@ const familyGroupSchema = new mongoose.Schema({
   inviteExpiry: {
     type: Date,
     default: function() {
-      return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+      return new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
     }
   },
   isActive: {
@@ -116,12 +119,8 @@ familyGroupSchema.index({ adminId: 1 });
 familyGroupSchema.index({ 'members.userId': 1 });
 familyGroupSchema.index({ isActive: 1 });
 
-// Generate unique invite code before saving
+// Update stats before saving
 familyGroupSchema.pre('save', function(next) {
-  if (!this.inviteCode) {
-    this.inviteCode = this.generateInviteCode();
-  }
-  
   // Update total members count
   this.stats.totalMembers = this.members.length;
   
@@ -136,7 +135,7 @@ familyGroupSchema.methods.generateInviteCode = function() {
 // Regenerate invite code
 familyGroupSchema.methods.regenerateInviteCode = function() {
   this.inviteCode = this.generateInviteCode();
-  this.inviteExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  this.inviteExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
   return this.inviteCode;
 };
 
