@@ -1,8 +1,14 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
+const dotenv = require('dotenv');
+
+// Load environment variables
+dotenv.config();
+
+const { formatDateTimeIST, getCurrentIST } = require('./utils/timeUtils');
 const connectDB = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,25 +26,24 @@ const authRoutes = require('./routes/auth');
 const familyRoutes = require('./routes/family');
 const bpReadingRoutes = require('./routes/bpReadings');
 
-// Basic route
+// Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'BP Monitor API Server is running!',
-    version: '1.0.0',
+  res.json({
+    message: 'BP Monitor API is running!',
+    timestamp: formatDateTimeIST(getCurrentIST()),
+    uptime: process.uptime(),
     endpoints: {
-      health: '/health',
       auth: '/api/auth',
-      family: '/api/family',
       bpReadings: '/api/bp-readings',
-      documentation: 'Coming soon...'
+      family: '/api/family'
     }
   });
 });
 
 // Health check route
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     database: 'Connected'

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getCurrentIST, datetimeLocalToISO } from '@/utils/timeUtils'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const api = axios.create({
@@ -101,6 +102,24 @@ export interface GetBPReadingsParams {
 }
 
 class BPReadingService {
+  private api = axios.create({
+    baseURL: 'http://localhost:5000/api',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+
+  constructor() {
+    // Add request interceptor to include JWT token
+    this.api.interceptors.request.use((config) => {
+      const token = localStorage.getItem('token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      return config
+    })
+  }
+
   // Create a new BP reading
   async createReading(data: CreateBPReadingData): Promise<BPReading> {
     try {
@@ -216,28 +235,33 @@ class BPReadingService {
   static validateBPData(data: CreateBPReadingData): { isValid: boolean; errors: string[] } {
     const errors: string[] = []
 
+    // Validate systolic pressure
     if (!data.systolic || data.systolic < 70 || data.systolic > 250) {
       errors.push('Systolic pressure must be between 70-250 mmHg')
     }
 
+    // Validate diastolic pressure
     if (!data.diastolic || data.diastolic < 40 || data.diastolic > 150) {
       errors.push('Diastolic pressure must be between 40-150 mmHg')
     }
 
+    // Validate systolic > diastolic
     if (data.systolic && data.diastolic && data.systolic <= data.diastolic) {
       errors.push('Systolic pressure must be higher than diastolic pressure')
     }
 
+    // Validate pulse rate
     if (data.pulseRate && (data.pulseRate < 30 || data.pulseRate > 200)) {
       errors.push('Pulse rate must be between 30-200 bpm')
     }
 
-    if (data.timestamp && new Date(data.timestamp) > new Date()) {
-      errors.push('Reading timestamp cannot be in the future')
-    }
-
-    if (data.comments && data.comments.length > 500) {
-      errors.push('Comments cannot exceed 500 characters')
+    // Validate timestamp (check if in future - using IST)
+    if (data.timestamp) {
+      const inputDate = new Date(data.timestamp)
+      const currentIST = getCurrentIST()
+      if (inputDate > currentIST) {
+        errors.push('Reading timestamp cannot be in the future')
+      }
     }
 
     return {

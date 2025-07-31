@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { formatDateIST, formatTimeIST } = require('../utils/timeUtils');
 
 const bpReadingSchema = new mongoose.Schema({
   userId: {
@@ -107,11 +108,11 @@ bpReadingSchema.virtual('bpDisplay').get(function() {
 
 // Virtual for formatted timestamp
 bpReadingSchema.virtual('formattedDate').get(function() {
-  return this.timestamp.toLocaleDateString();
+  return formatDateIST(this.timestamp);
 });
 
 bpReadingSchema.virtual('formattedTime').get(function() {
-  return this.timestamp.toLocaleTimeString();
+  return formatTimeIST(this.timestamp);
 });
 
 // Ensure virtual fields are serialized

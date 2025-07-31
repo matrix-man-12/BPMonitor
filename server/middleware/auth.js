@@ -28,10 +28,10 @@ const authenticateToken = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Get user from database
-    const user = await User.findById(decoded.userId).select('-password');
+    // Get user from database (using 'id' to match token creation)
+    const user = await User.findById(decoded.id).select('-password');
     
-    if (!user || !user.isActive) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid token or user not found'
@@ -73,9 +73,9 @@ const optionalAuth = async (req, res, next) => {
 
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.userId).select('-password');
+      const user = await User.findById(decoded.id).select('-password');
       
-      if (user && user.isActive) {
+      if (user) {
         req.user = user;
       }
     }

@@ -22,7 +22,13 @@ import {
   Lock
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import bpReadingService, { type BPReading, type CreateBPReadingData } from '@/services/bpReadingService'
+import bpReadingService, { type BPReading, type CreateBPReadingData, type BPStatistics } from '@/services/bpReadingService'
+import { 
+  formatDateIST, 
+  formatTimeIST, 
+  getCurrentDatetimeLocal, 
+  datetimeLocalToISO 
+} from '@/utils/timeUtils'
 
 // Mock data for family members - will be replaced with real API data later
 const familyMembers = [
@@ -34,31 +40,41 @@ const familyMembers = [
 
 
 function AddBPReadingDialog({ 
-  onAdd, 
-  children 
+  children, 
+  onAdd 
 }: { 
-  onAdd: (reading: CreateBPReadingData) => void
-  children?: React.ReactNode 
+  children?: React.ReactNode;
+  onAdd: (reading: CreateBPReadingData) => void;
 }) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState({
     systolic: '',
     diastolic: '',
     pulseRate: '',
+    timestamp: getCurrentDatetimeLocal(),
     comments: '',
-    timestamp: new Date().toISOString().slice(0, 16)
+    location: '',
+    deviceUsed: '',
+    tags: []
   })
   const [errors, setErrors] = useState<string[]>([])
 
   const validateForm = () => {
     const newErrors: string[] = []
     
-    if (!formData.systolic || parseInt(formData.systolic) < 70 || parseInt(formData.systolic) > 250) {
+    const systolic = parseInt(formData.systolic)
+    const diastolic = parseInt(formData.diastolic)
+    
+    if (!systolic || systolic < 70 || systolic > 250) {
       newErrors.push('Systolic pressure must be between 70-250 mmHg')
     }
     
-    if (!formData.diastolic || parseInt(formData.diastolic) < 40 || parseInt(formData.diastolic) > 150) {
+    if (!diastolic || diastolic < 40 || diastolic > 150) {
       newErrors.push('Diastolic pressure must be between 40-150 mmHg')
+    }
+    
+    if (systolic <= diastolic) {
+      newErrors.push('Systolic pressure must be higher than diastolic pressure')
     }
     
     if (formData.pulseRate && (parseInt(formData.pulseRate) < 30 || parseInt(formData.pulseRate) > 200)) {
@@ -77,32 +93,39 @@ function AddBPReadingDialog({
     return 'normal'
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) return
 
-    const systolic = parseInt(formData.systolic)
-    const diastolic = parseInt(formData.diastolic)
-    
-    const newReading: CreateBPReadingData = {
-      systolic,
-      diastolic,
-      pulseRate: formData.pulseRate ? parseInt(formData.pulseRate) : undefined,
-      timestamp: formData.timestamp,
-      comments: formData.comments || undefined
+    try {
+      const readingData: CreateBPReadingData = {
+        systolic: parseInt(formData.systolic),
+        diastolic: parseInt(formData.diastolic),
+        pulseRate: formData.pulseRate ? parseInt(formData.pulseRate) : undefined,
+        timestamp: formData.timestamp,
+        comments: formData.comments || undefined,
+        location: formData.location || undefined,
+        deviceUsed: formData.deviceUsed || undefined,
+        tags: formData.tags || []
+      }
+      
+      await onAdd(readingData)
+      setOpen(false)
+      setFormData({
+        systolic: '',
+        diastolic: '',
+        pulseRate: '',
+        timestamp: getCurrentDatetimeLocal(),
+        comments: '',
+        location: '',
+        deviceUsed: '',
+        tags: []
+      })
+      setErrors([])
+    } catch (error) {
+      console.error('Error adding reading:', error)
     }
-
-    onAdd(newReading)
-    setOpen(false)
-    setFormData({
-      systolic: '',
-      diastolic: '',
-      pulseRate: '',
-      comments: '',
-      timestamp: new Date().toISOString().slice(0, 16)
-    })
-    setErrors([])
   }
 
   return (
@@ -250,14 +273,26 @@ export function Dashboard() {
 
   const handleAddReading = async (newReading: CreateBPReadingData) => {
     try {
-      const savedReading = await bpReadingService.createReading(newReading)
-      console.log('New reading added:', savedReading)
+      // Convert timestamp to ISO for API
+      const readingData = {
+        ...newReading,
+        timestamp: datetimeLocalToISO(newReading.timestamp || getCurrentDatetimeLocal())
+      }
       
-      // Navigate to readings page to see the new reading
+      const result = await bpReadingService.createReading(readingData)
+      
+      // Refresh recent readings
+      const recent = await bpReadingService.getRecentReadings()
+      setRecentReadings(recent)
+      
+      // Refresh statistics
+      const stats = await bpReadingService.getStatistics()
+      setStats(stats)
+      
+      // Navigate to readings page
       navigate('/readings')
     } catch (error) {
-      console.error('Failed to add reading:', error)
-      // TODO: Show error message to user
+      console.error('Error adding reading:', error)
     }
   }
 
@@ -363,7 +398,7 @@ export function Dashboard() {
                     </div>
                     <div className="text-sm text-muted-foreground flex items-center gap-2">
                       <Calendar className="h-3 w-3" />
-                      {new Date(reading.timestamp).toLocaleDateString()} at {new Date(reading.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatDateIST(reading.timestamp)} at {formatTimeIST(reading.timestamp)}
                     </div>
                   </div>
                 </div>

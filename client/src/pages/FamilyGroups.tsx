@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import familyService, { type FamilyGroup, type CreateFamilyGroupData, type InviteLinkData } from '@/services/familyService'
 import { useAuth } from '@/hooks/useAuth'
+import { formatDateIST } from '@/utils/timeUtils'
 
 export function FamilyGroups() {
   const { user } = useAuth()
@@ -130,12 +131,12 @@ export function FamilyGroups() {
 
   const copyInviteLink = async (link: string) => {
     try {
-      await familyService.copyInviteLink(link)
+      await navigator.clipboard.writeText(link)
       setSuccess('Invite link copied to clipboard!')
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (error) {
-      console.error('Failed to copy invite link:', error)
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (err) {
       setError('Failed to copy invite link')
+      setTimeout(() => setError(''), 3000)
     }
   }
 
@@ -148,14 +149,6 @@ export function FamilyGroups() {
       console.error('Failed to share invite link:', error)
       setError('Failed to share invite link')
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
   }
 
   if (loading) {
@@ -451,7 +444,7 @@ export function FamilyGroups() {
                   {/* Created Date */}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    Created {formatDate(group.createdAt)}
+                    Created {formatDateIST(group.createdAt)}
                   </div>
                 </CardContent>
               </Card>

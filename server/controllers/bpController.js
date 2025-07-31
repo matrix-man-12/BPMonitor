@@ -1,7 +1,10 @@
 const BPReading = require('../models/BPReading');
-const User = require('../models/User');
+const mongoose = require('mongoose');
+const { datetimeLocalToUTC, getCurrentIST } = require('../utils/timeUtils');
 
-// Create a new BP reading
+// @desc    Create a new BP reading
+// @route   POST /api/bp-readings
+// @access  Private
 const createBPReading = async (req, res) => {
   try {
     const { systolic, diastolic, pulseRate, timestamp, comments, location, deviceUsed, tags } = req.body;
@@ -10,34 +13,33 @@ const createBPReading = async (req, res) => {
     if (!systolic || !diastolic) {
       return res.status(400).json({
         success: false,
-        message: 'Systolic and diastolic pressures are required'
+        message: 'Systolic and diastolic pressure are required'
       });
     }
 
-    // Auto-categorize the reading
-    const category = BPReading.categorizeBP(systolic, diastolic);
+    // Convert timestamp from datetime-local (IST) to UTC for storage
+    const utcTimestamp = timestamp ? datetimeLocalToUTC(timestamp) : new Date();
 
-    // Create new reading
-    const newReading = new BPReading({
-      userId: req.user._id,
+    const reading = new BPReading({
+      userId: req.user.id,
       systolic,
       diastolic,
       pulseRate,
-      timestamp: timestamp ? new Date(timestamp) : new Date(),
+      timestamp: utcTimestamp,
       comments,
-      category,
       location,
       deviceUsed,
       tags: tags || []
     });
 
-    const savedReading = await newReading.save();
+    const savedReading = await reading.save();
 
     res.status(201).json({
       success: true,
       message: 'BP reading created successfully',
       data: savedReading
     });
+
   } catch (error) {
     console.error('Create BP reading error:', error);
     
@@ -49,7 +51,7 @@ const createBPReading = async (req, res) => {
         errors
       });
     }
-
+    
     res.status(500).json({
       success: false,
       message: 'Failed to create BP reading'
@@ -153,15 +155,20 @@ const getBPReadingById = async (req, res) => {
 // Update a BP reading
 const updateBPReading = async (req, res) => {
   try {
-    const { id } = req.params;
+    const readingId = req.params.id;
     const { systolic, diastolic, pulseRate, timestamp, comments, location, deviceUsed, tags } = req.body;
 
-    // Find the reading
-    const reading = await BPReading.findOne({
-      _id: id,
-      userId: req.user._id
-    });
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(readingId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reading ID'
+      });
+    }
 
+    // Find the reading
+    const reading = await BPReading.findOne({ _id: readingId, userId: req.user.id });
+    
     if (!reading) {
       return res.status(404).json({
         success: false,
@@ -173,7 +180,7 @@ const updateBPReading = async (req, res) => {
     if (systolic !== undefined) reading.systolic = systolic;
     if (diastolic !== undefined) reading.diastolic = diastolic;
     if (pulseRate !== undefined) reading.pulseRate = pulseRate;
-    if (timestamp !== undefined) reading.timestamp = new Date(timestamp);
+    if (timestamp !== undefined) reading.timestamp = datetimeLocalToUTC(timestamp);
     if (comments !== undefined) reading.comments = comments;
     if (location !== undefined) reading.location = location;
     if (deviceUsed !== undefined) reading.deviceUsed = deviceUsed;
@@ -191,6 +198,7 @@ const updateBPReading = async (req, res) => {
       message: 'BP reading updated successfully',
       data: updatedReading
     });
+
   } catch (error) {
     console.error('Update BP reading error:', error);
     
@@ -202,7 +210,7 @@ const updateBPReading = async (req, res) => {
         errors
       });
     }
-
+    
     res.status(500).json({
       success: false,
       message: 'Failed to update BP reading'

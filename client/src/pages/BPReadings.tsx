@@ -63,6 +63,14 @@ import bpReadingService, {
   type BPStatistics, 
   type BPCategoryInfo 
 } from '@/services/bpReadingService'
+import {
+  formatDateIST,
+  formatTimeIST,
+  formatChartDate,
+  getCurrentDatetimeLocal,
+  utcToDatetimeLocal,
+  datetimeLocalToISO
+} from '@/utils/timeUtils'
 
 const BP_CATEGORIES = {
   'normal': { label: 'Normal', color: 'bg-green-500', range: '<120 and <80' },
@@ -151,12 +159,15 @@ const CustomDot = (props: any) => {
 
 function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) => void }) {
   const [open, setOpen] = useState(false)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateBPReadingData>({
     systolic: '',
     diastolic: '',
     pulseRate: '',
+    timestamp: getCurrentDatetimeLocal(),
     comments: '',
-    timestamp: new Date().toISOString().slice(0, 16)
+    location: '',
+    deviceUsed: '',
+    tags: []
   })
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -188,25 +199,28 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) =
     setSubmitting(true)
     
     try {
-      const systolic = parseInt(formData.systolic)
-      const diastolic = parseInt(formData.diastolic)
-      
-      const newReading: CreateBPReadingData = {
-        systolic,
-        diastolic,
+      const readingData: CreateBPReadingData = {
+        systolic: parseInt(formData.systolic),
+        diastolic: parseInt(formData.diastolic),
         pulseRate: formData.pulseRate ? parseInt(formData.pulseRate) : undefined,
-        timestamp: formData.timestamp,
-        comments: formData.comments || undefined
+        timestamp: datetimeLocalToISO(formData.timestamp),
+        comments: formData.comments || undefined,
+        location: formData.location || undefined,
+        deviceUsed: formData.deviceUsed || undefined,
+        tags: formData.tags || []
       }
       
-      await onAdd(newReading)
+      await onAdd(readingData)
       setOpen(false)
       setFormData({
         systolic: '',
         diastolic: '',
         pulseRate: '',
+        timestamp: getCurrentDatetimeLocal(),
         comments: '',
-        timestamp: new Date().toISOString().slice(0, 16)
+        location: '',
+        deviceUsed: '',
+        tags: []
       })
       setErrors([])
     } catch (error) {
@@ -483,31 +497,17 @@ export default function BPReadings() {
   // Enhanced chart data preparation with trend analysis
   const chartData = filteredReadings
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((reading, index, array) => {
-      // Calculate 7-day moving average
-      const startIndex = Math.max(0, index - 3)
-      const endIndex = Math.min(array.length - 1, index + 3)
-      const window = array.slice(startIndex, endIndex + 1)
-      
-      const avgSystolic = window.reduce((sum, r) => sum + r.systolic, 0) / window.length
-      const avgDiastolic = window.reduce((sum, r) => sum + r.diastolic, 0) / window.length
-      
-      return {
-        date: new Date(reading.timestamp).toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric',
-          ...(filteredReadings.length <= 7 ? { hour: '2-digit', minute: '2-digit' } : {})
-        }),
-        systolic: reading.systolic,
-        diastolic: reading.diastolic,
-        pulse: reading.pulseRate || 0,
-        avgSystolic: Math.round(avgSystolic),
-        avgDiastolic: Math.round(avgDiastolic),
-        category: reading.category,
-        fullDate: reading.timestamp,
-        isRecent: index >= array.length - 7
-      }
-    })
+    .map(reading => ({
+      systolic: reading.systolic,
+      diastolic: reading.diastolic,
+      pulse: reading.pulseRate || 0,
+      date: formatChartDate(reading.timestamp),
+      fullDate: reading.timestamp,
+      category: reading.category,
+      // Add moving averages
+      avgSystolic: 0, // Will be calculated below
+      avgDiastolic: 0  // Will be calculated below
+    }))
 
   // Calculate trend
   const getTrend = (data: number[]) => {
@@ -1036,18 +1036,17 @@ export default function BPReadings() {
                     <div key={reading._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
                       <div className="flex items-center gap-4">
                         <div className="text-center">
-                          <div className="text-lg font-bold">
-                            {reading.systolic}/{reading.diastolic}
-                          </div>
-                          <div className="text-xs text-muted-foreground">mmHg</div>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm">{new Date(reading.timestamp).toLocaleDateString()}</span>
-                            <Clock className="h-3 w-3 text-muted-foreground ml-2" />
-                            <span className="text-sm">{new Date(reading.timestamp).toLocaleTimeString()}</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="text-lg font-semibold">{reading.systolic}/{reading.diastolic}</div>
+                              <Badge variant="outline" className={bpReadingService.getCategoryColor(reading.category)}>
+                                {reading.category}
+                              </Badge>
+                            </div>
+                            <div className="text-right text-sm text-muted-foreground">
+                              <div>{formatDateIST(reading.timestamp)}</div>
+                              <div>{formatTimeIST(reading.timestamp)}</div>
+                            </div>
                           </div>
                           
                           {reading.comments && (

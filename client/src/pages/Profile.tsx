@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +29,7 @@ import {
   MapPin,
   Phone
 } from 'lucide-react'
+import { formatDateIST } from '@/utils/timeUtils'
 
 export default function Profile() {
   const { user, updateProfile, loading } = useAuth()
@@ -131,10 +132,7 @@ export default function Profile() {
     )
   }
 
-  const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long'
-  }) : 'Unknown'
+  const memberSince = user?.createdAt ? formatDateIST(user.createdAt) : 'Unknown'
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
