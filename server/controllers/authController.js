@@ -140,9 +140,14 @@ const login = async (req, res) => {
 // Get current user profile
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .select('-password') // Exclude password field
-      .populate('familyGroups', 'name members');
+    const user = await User.findById(req.user.id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
     res.json({
       success: true,
@@ -152,7 +157,7 @@ const getProfile = async (req, res) => {
     console.error('Get profile error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get user profile'
+      message: 'Failed to fetch profile'
     });
   }
 };
@@ -176,7 +181,7 @@ const updateProfile = async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(
-      req.user._id,
+      req.user.id,
       updates,
       { new: true, runValidators: true }
     ).select('-password');
@@ -218,7 +223,7 @@ const changePassword = async (req, res) => {
     }
 
     // Get user with password
-    const user = await User.findById(req.user._id).select('+password');
+    const user = await User.findById(req.user.id).select('+password');
 
     // Verify current password
     const isCurrentPasswordValid = await user.comparePassword(currentPassword);

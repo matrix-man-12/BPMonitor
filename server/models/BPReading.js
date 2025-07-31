@@ -45,9 +45,12 @@ const bpReadingSchema = new mongoose.Schema({
     default: Date.now,
     validate: {
       validator: function(date) {
-        return date <= new Date();
+        // Allow up to 1 hour in the future to account for timezone conversion issues
+        const now = new Date();
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+        return date <= oneHourFromNow;
       },
-      message: 'Reading timestamp cannot be in the future'
+      message: 'Reading timestamp cannot be more than 1 hour in the future'
     }
   },
   comments: {

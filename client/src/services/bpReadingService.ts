@@ -271,4 +271,5 @@ class BPReadingService {
   }
 }
 
+export { BPReadingService }
 export default new BPReadingService() 

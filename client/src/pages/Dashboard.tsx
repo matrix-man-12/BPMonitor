@@ -379,42 +379,42 @@ export function Dashboard() {
               <CardTitle className="text-xl font-semibold">Recent Readings</CardTitle>
               <AddBPReadingDialog onAdd={handleAddReading}>
                 <Button size="sm" className="gap-2 cursor-pointer">
-                  <Plus className="h-4 w-4" />
-                  Add Reading
-                </Button>
+                <Plus className="h-4 w-4" />
+                Add Reading
+              </Button>
               </AddBPReadingDialog>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recentReadings.map((reading) => (
+              {recentReadings.map((reading) => (
               <div key={reading._id} className="flex items-center justify-between p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-red-500 to-pink-500 text-white cursor-pointer">
-                    <Heart className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-lg">
-                      {reading.systolic}/{reading.diastolic} mmHg
+                      <Heart className="h-6 w-6" />
                     </div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Calendar className="h-3 w-3" />
+                    <div>
+                      <div className="font-semibold text-lg">
+                        {reading.systolic}/{reading.diastolic} mmHg
+                      </div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Calendar className="h-3 w-3" />
                       {formatDateIST(reading.timestamp)} at {formatTimeIST(reading.timestamp)}
                     </div>
+                    </div>
                   </div>
-                </div>
-                <Badge 
+                  <Badge 
                   variant={reading.category === 'normal' ? 'default' : 'destructive'}
                   className="capitalize cursor-pointer"
-                >
+                  >
                   {reading.category}
-                </Badge>
-              </div>
-            ))}
+                  </Badge>
+                </div>
+              ))}
             {recentReadings.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <Heart className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                 <p>No readings yet. Start tracking your blood pressure!</p>
-              </div>
+            </div>
             )}
             <Button 
               variant="outline" 
@@ -433,29 +433,29 @@ export function Dashboard() {
             <CardTitle className="text-xl font-semibold">Family Members</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {familyMembers.map((member) => (
+              {familyMembers.map((member) => (
               <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                 <Avatar className="h-10 w-10 cursor-pointer">
-                  <AvatarImage src={member.avatar} alt={member.name} />
+                    <AvatarImage src={member.avatar} alt={member.name} />
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white cursor-pointer">
-                    {member.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{member.name}</div>
-                  <div className="text-sm text-muted-foreground">{member.role}</div>
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{member.name}</div>
+                    <div className="text-sm text-muted-foreground">{member.role}</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {member.lastReading}
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {member.lastReading}
-                </div>
-              </div>
-            ))}
-            
+              ))}
+              
             <Button variant="outline" className="w-full mt-4 gap-2 cursor-pointer" onClick={() => navigate('/family')}>
-              <Plus className="h-4 w-4" />
-              Invite Family Member
-            </Button>
+                <Plus className="h-4 w-4" />
+                Invite Family Member
+              </Button>
           </CardContent>
         </Card>
       </div>
@@ -471,9 +471,9 @@ export function Dashboard() {
               <Button 
                 className="h-24 flex-col gap-2 bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 w-full cursor-pointer"
               >
-                <Heart className="h-6 w-6" />
-                Record BP Reading
-              </Button>
+              <Heart className="h-6 w-6" />
+              Record BP Reading
+            </Button>
             </AddBPReadingDialog>
             <Button 
               variant="outline" 

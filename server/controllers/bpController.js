@@ -9,6 +9,12 @@ const createBPReading = async (req, res) => {
   try {
     const { systolic, diastolic, pulseRate, timestamp, comments, location, deviceUsed, tags } = req.body;
 
+    // Debug logging
+    console.log('Received BP reading data:', {
+      systolic, diastolic, pulseRate, timestamp, 
+      comments, location, deviceUsed, tags
+    });
+
     // Validate required fields
     if (!systolic || !diastolic) {
       return res.status(400).json({
@@ -17,15 +23,47 @@ const createBPReading = async (req, res) => {
       });
     }
 
+    // Ensure numeric values
+    const systolicNum = Number(systolic);
+    const diastolicNum = Number(diastolic);
+    const pulseRateNum = pulseRate ? Number(pulseRate) : undefined;
+
+    // Additional validation
+    if (isNaN(systolicNum) || isNaN(diastolicNum)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Systolic and diastolic pressure must be valid numbers'
+      });
+    }
+
+    if (pulseRate && isNaN(pulseRateNum)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pulse rate must be a valid number'
+      });
+    }
+
     // Convert timestamp from datetime-local (IST) to UTC for storage
     const utcTimestamp = timestamp ? datetimeLocalToUTC(timestamp) : new Date();
+    
+    // Calculate BP category automatically
+    const bpCategory = BPReading.categorizeBP(systolicNum, diastolicNum);
+    
+    console.log('Converted timestamp:', {
+      original: timestamp,
+      converted: utcTimestamp,
+      now: new Date()
+    });
+
+    console.log('Calculated BP category:', bpCategory);
 
     const reading = new BPReading({
       userId: req.user.id,
-      systolic,
-      diastolic,
-      pulseRate,
+      systolic: systolicNum,
+      diastolic: diastolicNum,
+      pulseRate: pulseRateNum,
       timestamp: utcTimestamp,
+      category: bpCategory,
       comments,
       location,
       deviceUsed,
@@ -45,6 +83,7 @@ const createBPReading = async (req, res) => {
     
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
+      console.log('Validation errors:', errors);
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -73,7 +112,7 @@ const getBPReadings = async (req, res) => {
     } = req.query;
 
     // Build filter query
-    const filter = { userId: req.user._id };
+    const filter = { userId: req.user.id };
 
     if (category && category !== 'all') {
       filter.category = category;
@@ -129,7 +168,7 @@ const getBPReadingById = async (req, res) => {
 
     const reading = await BPReading.findOne({
       _id: id,
-      userId: req.user._id
+      userId: req.user.id
     });
 
     if (!reading) {
@@ -167,7 +206,10 @@ const updateBPReading = async (req, res) => {
     }
 
     // Find the reading
-    const reading = await BPReading.findOne({ _id: readingId, userId: req.user.id });
+    const reading = await BPReading.findOne({
+      _id: readingId,
+      userId: req.user.id
+    });
     
     if (!reading) {
       return res.status(404).json({
@@ -223,12 +265,12 @@ const deleteBPReading = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const reading = await BPReading.findOneAndDelete({
+    const result = await BPReading.findOneAndDelete({
       _id: id,
-      userId: req.user._id
+      userId: req.user.id
     });
 
-    if (!reading) {
+    if (!result) {
       return res.status(404).json({
         success: false,
         message: 'BP reading not found'
@@ -238,7 +280,7 @@ const deleteBPReading = async (req, res) => {
     res.json({
       success: true,
       message: 'BP reading deleted successfully',
-      data: reading
+      data: result
     });
   } catch (error) {
     console.error('Delete BP reading error:', error);
@@ -277,7 +319,7 @@ const getBPStatistics = async (req, res) => {
 
     // Get readings for the period
     const readings = await BPReading.find({
-      userId: req.user._id,
+      userId: req.user.id,
       timestamp: { $gte: startDate, $lte: now }
     }).sort({ timestamp: 1 });
 
@@ -379,7 +421,7 @@ const getRecentBPReadings = async (req, res) => {
   try {
     const { limit = 5 } = req.query;
 
-    const readings = await BPReading.find({ userId: req.user._id })
+    const readings = await BPReading.find({ userId: req.user.id })
       .sort({ timestamp: -1 })
       .limit(parseInt(limit))
       .lean();

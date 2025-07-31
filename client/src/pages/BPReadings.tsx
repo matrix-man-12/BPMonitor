@@ -61,7 +61,8 @@ import bpReadingService, {
   type BPReading, 
   type CreateBPReadingData, 
   type BPStatistics, 
-  type BPCategoryInfo 
+  type BPCategoryInfo,
+  BPReadingService
 } from '@/services/bpReadingService'
 import {
   formatDateIST,
@@ -1039,7 +1040,7 @@ export default function BPReadings() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="text-lg font-semibold">{reading.systolic}/{reading.diastolic}</div>
-                              <Badge variant="outline" className={bpReadingService.getCategoryColor(reading.category)}>
+                              <Badge variant="outline" className={BPReadingService.getCategoryColor(reading.category)}>
                                 {reading.category}
                               </Badge>
                             </div>

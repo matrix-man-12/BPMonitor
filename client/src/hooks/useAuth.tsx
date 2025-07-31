@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await axios.post('/api/auth/login', { email, password })
       
       if (response.data.success) {
-        const { user: newUser, token } = response.data.data
+        const { user: newUser, token } = response.data
         
         // Update localStorage first
         localStorage.setItem('token', token)
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await axios.post('/api/auth/register', userData)
       
       if (response.data.success) {
-        const { user: newUser, token } = response.data.data
+        const { user: newUser, token } = response.data
         
         // Update localStorage first
         localStorage.setItem('token', token)
