@@ -106,11 +106,13 @@ export const getISTOffset = (): string => {
  */
 export const datetimeLocalToISO = (datetimeLocal: string): string => {
   if (!datetimeLocal) return '';
-  // datetime-local input gives us local time, treat it as IST and convert to UTC
+  
+  // datetime-local input gives us local time in the user's timezone
+  // Create a Date object from the local datetime string
   const localDate = new Date(datetimeLocal);
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const utcDate = new Date(localDate.getTime() - istOffset);
-  return utcDate.toISOString();
+  
+  // Return ISO string - this will automatically convert to UTC based on user's timezone
+  return localDate.toISOString();
 };
 
 /**
@@ -138,8 +140,16 @@ export const utcToDatetimeLocal = (utcDate: Date | string): string => {
  * @returns {string} Current datetime in datetime-local format (IST)
  */
 export const getCurrentDatetimeLocal = (): string => {
-  const now = getCurrentIST();
-  return utcToDatetimeLocal(now);
+  const now = new Date();
+  
+  // Format for datetime-local input (YYYY-MM-DDTHH:mm) in browser's local time
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 /**

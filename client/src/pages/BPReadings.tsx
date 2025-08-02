@@ -9,21 +9,14 @@ import { Progress } from '@/components/ui/progress'
 import { 
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
   type ChartConfig,
 } from '@/components/ui/chart'
 import { 
   Heart, 
   Plus, 
-  Calendar,
-  Clock,
   TrendingUp,
   TrendingDown,
-  Filter,
   Search,
-  Download,
   MoreVertical,
   Edit,
   Trash2,
@@ -48,14 +41,9 @@ import {
   XAxis, 
   YAxis, 
   CartesianGrid, 
-  ResponsiveContainer, 
   ReferenceLine, 
-  Area, 
-  AreaChart,
   Brush,
-  Dot,
-  Tooltip,
-  Legend
+  Dot
 } from 'recharts'
 import bpReadingService, { 
   type BPReading, 
@@ -69,7 +57,6 @@ import {
   formatTimeIST,
   formatChartDate,
   getCurrentDatetimeLocal,
-  utcToDatetimeLocal,
   datetimeLocalToISO
 } from '@/utils/timeUtils'
 
@@ -349,11 +336,10 @@ function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) =
 export default function BPReadings() {
   const [readings, setReadings] = useState<BPReading[]>([])
   const [statistics, setStatistics] = useState<BPStatistics | null>(null)
-  const [categories, setCategories] = useState<BPCategoryInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedPeriod, setSelectedPeriod] = useState('30') // days
   const [showPulse, setShowPulse] = useState(false)
   const [showTrendlines, setShowTrendlines] = useState(true)
@@ -390,20 +376,7 @@ export default function BPReadings() {
           // Statistics are optional, continue without them
         }
         
-        try {
-          // Fetch categories
-          const categoriesResult = await bpReadingService.getCategories()
-          
-          if (categoriesResult && typeof categoriesResult === 'object') {
-            const categoriesArray = Object.entries(categoriesResult).map(([key, value]: [string, any]) => ({
-              id: key,
-              ...value
-            }))
-            setCategories(categoriesArray)
-          }
-        } catch (err) {
-          // Categories are optional, continue without them
-        }
+        // Categories are handled statically with BP_CATEGORIES constant
         
       } catch (err) {
         setError('Failed to load data: ' + (err instanceof Error ? err.message : 'Network error'))
@@ -416,9 +389,8 @@ export default function BPReadings() {
   }, [])
 
   const handleAddReading = async (newReading: CreateBPReadingData) => {
-    setSubmitting(true)
     try {
-      const result = await bpReadingService.createReading(newReading)
+      await bpReadingService.createReading(newReading)
       
       // Refresh readings data
       const readingsResult = await bpReadingService.getReadings()
@@ -441,14 +413,12 @@ export default function BPReadings() {
       
     } catch (err) {
       setError('Failed to add reading: ' + (err instanceof Error ? err.message : 'Unknown error'))
-    } finally {
-      setSubmitting(false)
     }
   }
 
   const handleDeleteReading = async (id: string) => {
     try {
-      const result = await bpReadingService.deleteReading(id)
+      await bpReadingService.deleteReading(id)
       
       // Refresh readings data
       const readingsResult = await bpReadingService.getReadings()
@@ -474,14 +444,33 @@ export default function BPReadings() {
     }
   }
 
-  // Filter readings by search query and time period
+  // Filter readings by search query, category, and time period
   const filteredReadings = readings
-    .filter(reading => 
-      searchQuery === '' || 
-      reading.comments?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      reading.category.toLowerCase().includes(searchQuery.toLowerCase())
-    )
     .filter(reading => {
+      // Search filter - search in comments, category, and BP values
+      if (searchQuery === '') return true
+      
+      const query = searchQuery.toLowerCase()
+      const bpValue = `${reading.systolic}/${reading.diastolic}`
+      const systolicStr = reading.systolic.toString()
+      const diastolicStr = reading.diastolic.toString()
+      
+      return (
+        reading.comments?.toLowerCase().includes(query) ||
+        reading.category.toLowerCase().includes(query) ||
+        bpValue.includes(query) ||
+        systolicStr.includes(query) ||
+        diastolicStr.includes(query) ||
+        (reading.pulseRate && reading.pulseRate.toString().includes(query))
+      )
+    })
+    .filter(reading => {
+      // Category filter
+      if (selectedCategory === '') return true
+      return reading.category === selectedCategory
+    })
+    .filter(reading => {
+      // Time period filter
       const days = parseInt(selectedPeriod)
       if (days === 0) return true // All time
       const cutoff = new Date()
@@ -997,39 +986,51 @@ export default function BPReadings() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground cursor-pointer" />
               <Input
-                placeholder="Search readings..."
+                placeholder="Search by BP values (120/80), comments, category, pulse rate..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 cursor-pointer"
               />
             </div>
             <select
-              className="px-4 py-2 border rounded-md cursor-pointer"
-              onChange={(e) => {
-                // Handle filter by category
-              }}
+              className="px-4 py-2 border rounded-md cursor-pointer min-w-[150px]"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
             >
               <option value="">All Categories</option>
               {Object.entries(BP_CATEGORIES).map(([key, category]) => (
                 <option key={key} value={key}>{category.label}</option>
               ))}
             </select>
-            <Button variant="outline" className="gap-2 cursor-pointer">
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
           </div>
 
           {/* Readings List */}
           <Card className="dashboard-card">
             <CardHeader>
-              <CardTitle>Recent Readings ({filteredReadings.length})</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Recent Readings ({filteredReadings.length})</CardTitle>
+                {(searchQuery || selectedCategory) && (
+                  <div className="text-sm text-muted-foreground">
+                    {searchQuery && <span>Search: "{searchQuery}"</span>}
+                    {searchQuery && selectedCategory && <span> • </span>}
+                    {selectedCategory && <span>Category: {BP_CATEGORIES[selectedCategory as keyof typeof BP_CATEGORIES]?.label}</span>}
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {filteredReadings.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p>No readings match your search criteria</p>
+                  <p className="mb-2">No readings match your search criteria</p>
+                  {(searchQuery || selectedCategory) && (
+                    <div className="text-sm space-y-1">
+                      <p>Try adjusting your filters or search terms</p>
+                      <p className="text-xs">
+                        You can search by: BP values (e.g., "120/80", "120"), comments, category, or pulse rate
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
