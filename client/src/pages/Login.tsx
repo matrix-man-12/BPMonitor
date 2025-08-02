@@ -91,11 +91,7 @@ export function Login() {
     }
   }
 
-  const fillDemoCredentials = () => {
-    setEmail('demo@bpmonitor.com')
-    setPassword('demo123')
-    setError('') // Clear any existing errors
-  }
+
 
   // Clear error when user starts typing
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,30 +264,7 @@ export function Login() {
           </Link>
         </div>
 
-        {/* Demo Account */}
-        <Card className="dashboard-card border-dashed">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-3">
-              <h4 className="font-medium">Demo Account</h4>
-              <p className="text-sm text-muted-foreground">
-                Try the app with demo credentials
-              </p>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <div>Email: demo@bpmonitor.com</div>
-                <div>Password: demo123</div>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={fillDemoCredentials}
-                disabled={loading}
-                className="cursor-pointer"
-              >
-                Fill Demo Credentials
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   )

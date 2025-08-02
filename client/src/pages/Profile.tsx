@@ -11,7 +11,9 @@ import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useAuth } from '@/hooks/useAuth'
+import authService from '@/services/authService'
 import { 
   User, 
   Mail, 
@@ -51,6 +53,17 @@ export default function Profile() {
     push: user?.notificationPreferences?.push || false,
     reminders: user?.notificationPreferences?.reminders || false
   })
+
+  // Password change state
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
 
   // Update form data when user data changes
   useEffect(() => {
@@ -122,6 +135,81 @@ export default function Profile() {
         reminders: user.notificationPreferences?.reminders || false
       })
     }
+  }
+
+  // Password change functions
+  const handlePasswordInputChange = (field: string, value: string) => {
+    setPasswordData(prev => ({ ...prev, [field]: value }))
+    setPasswordError('') // Clear errors when user types
+  }
+
+  const validatePasswordForm = () => {
+    if (!passwordData.currentPassword) {
+      setPasswordError('Current password is required')
+      return false
+    }
+    if (!passwordData.newPassword) {
+      setPasswordError('New password is required')
+      return false
+    }
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters long')
+      return false
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match')
+      return false
+    }
+    if (passwordData.currentPassword === passwordData.newPassword) {
+      setPasswordError('New password must be different from current password')
+      return false
+    }
+    return true
+  }
+
+  const handleChangePassword = async () => {
+    if (!validatePasswordForm()) return
+
+    setIsChangingPassword(true)
+    setPasswordError('')
+    setPasswordSuccess('')
+
+    try {
+      const result = await authService.changePassword(
+        passwordData.currentPassword, 
+        passwordData.newPassword
+      )
+
+      setPasswordSuccess(result.message || 'Password changed successfully!')
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+      
+      // Close dialog after 2 seconds
+      setTimeout(() => {
+        setIsPasswordDialogOpen(false)
+        setPasswordSuccess('')
+      }, 2000)
+
+    } catch (error) {
+      console.error('Password change error:', error)
+      setPasswordError(error instanceof Error ? error.message : 'Failed to change password')
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
+  const handleClosePasswordDialog = () => {
+    setIsPasswordDialogOpen(false)
+    setPasswordData({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    })
+    setPasswordError('')
+    setPasswordSuccess('')
   }
 
   if (loading) {
@@ -444,9 +532,100 @@ export default function Profile() {
                         Last changed 30 days ago
                       </p>
                     </div>
-                    <Button variant="outline" className="cursor-pointer">
-                      Change Password
-                    </Button>
+                    <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="cursor-pointer">
+                          Change Password
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Change Password</DialogTitle>
+                          <DialogDescription>
+                            Enter your current password and choose a new one.
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="currentPassword">Current Password</Label>
+                            <Input
+                              id="currentPassword"
+                              type="password"
+                              value={passwordData.currentPassword}
+                              onChange={(e) => handlePasswordInputChange('currentPassword', e.target.value)}
+                              placeholder="Enter current password"
+                              disabled={isChangingPassword}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="newPassword">New Password</Label>
+                            <Input
+                              id="newPassword"
+                              type="password"
+                              value={passwordData.newPassword}
+                              onChange={(e) => handlePasswordInputChange('newPassword', e.target.value)}
+                              placeholder="Enter new password (min 6 characters)"
+                              disabled={isChangingPassword}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                            <Input
+                              id="confirmPassword"
+                              type="password"
+                              value={passwordData.confirmPassword}
+                              onChange={(e) => handlePasswordInputChange('confirmPassword', e.target.value)}
+                              placeholder="Confirm new password"
+                              disabled={isChangingPassword}
+                            />
+                          </div>
+
+                          {passwordError && (
+                            <Alert className="border-red-200 bg-red-50 dark:bg-red-950/20">
+                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                              <AlertDescription className="text-red-800 dark:text-red-200">
+                                {passwordError}
+                              </AlertDescription>
+                            </Alert>
+                          )}
+
+                          {passwordSuccess && (
+                            <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <AlertDescription className="text-green-800 dark:text-green-200">
+                                {passwordSuccess}
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+
+                        <DialogFooter>
+                          <Button 
+                            variant="outline" 
+                            onClick={handleClosePasswordDialog}
+                            disabled={isChangingPassword}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            onClick={handleChangePassword}
+                            disabled={isChangingPassword}
+                          >
+                            {isChangingPassword ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Changing...
+                              </>
+                            ) : (
+                              'Change Password'
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </div>
 

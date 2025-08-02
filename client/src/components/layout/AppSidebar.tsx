@@ -202,7 +202,7 @@ export function AppSidebar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   className="cursor-pointer text-red-600 focus:text-red-600"
-                  onClick={logout}
+                  onClick={() => logout()}
                 >
                   <LogOut className="size-4 mr-2" />
                   <span>Sign out</span>

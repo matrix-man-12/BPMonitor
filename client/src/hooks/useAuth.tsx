@@ -234,12 +234,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setUser(null)
-    // Optionally call logout endpoint
-    axios.post('/api/auth/logout').catch(() => {})
+  const logout = async () => {
+    try {
+      // Call logout endpoint before removing token
+      await axios.post('/api/auth/logout')
+    } catch (error) {
+      // Don't fail logout if API call fails
+      console.log('Logout API call failed, proceeding with client-side logout')
+    } finally {
+      // Always clear local storage and state
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setUser(null)
+    }
   }
 
   const updateProfile = async (data: Partial<User>) => {
