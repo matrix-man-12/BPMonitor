@@ -4,9 +4,6 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Heart, 
   Users, 
@@ -16,217 +13,20 @@ import {
   Activity,
   Clock,
   Target,
-  ArrowRight,
-  AlertTriangle
+  ArrowRight
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import bpReadingService, { type BPReading, type CreateBPReadingData } from '@/services/bpReadingService'
 import familyService from '@/services/familyService'
+import { AddBPReadingDialog } from '@/components/AddBPReadingDialog'
 import { 
   formatDateIST, 
-  formatTimeIST, 
-  getCurrentDatetimeLocal, 
-  datetimeLocalToISO 
+  formatTimeIST
 } from '@/utils/timeUtils'
 
 
 
-function AddBPReadingDialog({ 
-  children, 
-  onAdd 
-}: { 
-  children?: React.ReactNode;
-  onAdd: (reading: CreateBPReadingData) => void;
-}) {
-  const [open, setOpen] = useState(false)
-  const [formData, setFormData] = useState({
-    systolic: '',
-    diastolic: '',
-    pulseRate: '',
-    timestamp: getCurrentDatetimeLocal(),
-    comments: '',
-    location: '',
-    deviceUsed: '',
-    tags: []
-  })
-  const [errors, setErrors] = useState<string[]>([])
 
-  const validateForm = () => {
-    const newErrors: string[] = []
-    
-    const systolic = parseInt(formData.systolic)
-    const diastolic = parseInt(formData.diastolic)
-    
-    if (!systolic || systolic < 70 || systolic > 250) {
-      newErrors.push('Systolic pressure must be between 70-250 mmHg')
-    }
-    
-    if (!diastolic || diastolic < 40 || diastolic > 150) {
-      newErrors.push('Diastolic pressure must be between 40-150 mmHg')
-    }
-    
-    if (systolic <= diastolic) {
-      newErrors.push('Systolic pressure must be higher than diastolic pressure')
-    }
-    
-    if (formData.pulseRate && (parseInt(formData.pulseRate) < 30 || parseInt(formData.pulseRate) > 200)) {
-      newErrors.push('Pulse rate must be between 30-200 bpm')
-    }
-    
-    setErrors(newErrors)
-    return newErrors.length === 0
-  }
-
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) return
-
-    try {
-      const readingData: CreateBPReadingData = {
-        systolic: parseInt(formData.systolic),
-        diastolic: parseInt(formData.diastolic),
-        pulseRate: formData.pulseRate ? parseInt(formData.pulseRate) : undefined,
-        timestamp: formData.timestamp,
-        comments: formData.comments || undefined,
-        location: formData.location || undefined,
-        deviceUsed: formData.deviceUsed || undefined,
-        tags: formData.tags || []
-      }
-      
-      await onAdd(readingData)
-      setOpen(false)
-      setFormData({
-        systolic: '',
-        diastolic: '',
-        pulseRate: '',
-        timestamp: getCurrentDatetimeLocal(),
-        comments: '',
-        location: '',
-        deviceUsed: '',
-        tags: []
-      })
-      setErrors([])
-    } catch (error) {
-      console.error('Error adding reading:', error)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button size="sm" className="gap-2 cursor-pointer">
-            <Plus className="h-4 w-4" />
-            Add Reading
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Blood Pressure Reading</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.length > 0 && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <ul className="list-disc list-inside">
-                  {errors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="systolic" className="text-sm font-medium cursor-pointer">
-                Systolic (mmHg)
-              </label>
-              <Input
-                id="systolic"
-                type="number"
-                placeholder="120"
-                value={formData.systolic}
-                onChange={(e) => setFormData({ ...formData, systolic: e.target.value })}
-                className="cursor-pointer"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="diastolic" className="text-sm font-medium cursor-pointer">
-                Diastolic (mmHg)
-              </label>
-              <Input
-                id="diastolic"
-                type="number"
-                placeholder="80"
-                value={formData.diastolic}
-                onChange={(e) => setFormData({ ...formData, diastolic: e.target.value })}
-                className="cursor-pointer"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="pulseRate" className="text-sm font-medium cursor-pointer">
-              Pulse Rate (bpm) - Optional
-            </label>
-            <Input
-              id="pulseRate"
-              type="number"
-              placeholder="72"
-              value={formData.pulseRate}
-              onChange={(e) => setFormData({ ...formData, pulseRate: e.target.value })}
-              className="cursor-pointer"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="timestamp" className="text-sm font-medium cursor-pointer">
-              Date & Time
-            </label>
-            <Input
-              id="timestamp"
-              type="datetime-local"
-              value={formData.timestamp}
-              onChange={(e) => setFormData({ ...formData, timestamp: e.target.value })}
-              className="cursor-pointer"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="comments" className="text-sm font-medium cursor-pointer">
-              Comments - Optional
-            </label>
-            <Input
-              id="comments"
-              placeholder="e.g., after exercise, morning reading..."
-              value={formData.comments}
-              onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
-              className="cursor-pointer"
-            />
-          </div>
-
-          <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1 cursor-pointer">
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1 cursor-pointer">
-              Add Reading
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 export function Dashboard() {
   const navigate = useNavigate()
@@ -295,13 +95,8 @@ export function Dashboard() {
 
   const handleAddReading = async (newReading: CreateBPReadingData) => {
     try {
-      // Convert timestamp to ISO for API
-      const readingData = {
-        ...newReading,
-        timestamp: datetimeLocalToISO(newReading.timestamp || getCurrentDatetimeLocal())
-      }
-      
-      await bpReadingService.createReading(readingData)
+      // The shared component already handles timestamp conversion
+      await bpReadingService.createReading(newReading)
       
       // Refresh recent readings
       const recent = await bpReadingService.getRecentReadings()
@@ -315,6 +110,7 @@ export function Dashboard() {
       navigate('/readings')
     } catch (error) {
       console.error('Error adding reading:', error)
+      throw error // Re-throw to let the dialog handle the error display
     }
   }
 
@@ -399,12 +195,11 @@ export function Dashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-semibold">Recent Readings</CardTitle>
-              <AddBPReadingDialog onAdd={handleAddReading}>
-                <Button size="sm" className="gap-2 cursor-pointer">
-                <Plus className="h-4 w-4" />
-                Add Reading
-              </Button>
-              </AddBPReadingDialog>
+              <AddBPReadingDialog 
+                onAdd={handleAddReading} 
+                buttonSize="sm"
+                showLoadingState={false}
+              />
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -504,13 +299,16 @@ export function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
-            <AddBPReadingDialog onAdd={handleAddReading}>
+            <AddBPReadingDialog 
+              onAdd={handleAddReading} 
+              showLoadingState={false}
+            >
               <Button 
                 className="h-24 flex-col gap-2 bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 w-full cursor-pointer"
               >
-              <Heart className="h-6 w-6" />
-              Record BP Reading
-            </Button>
+                <Heart className="h-6 w-6" />
+                Record BP Reading
+              </Button>
             </AddBPReadingDialog>
             <Button 
               variant="outline" 

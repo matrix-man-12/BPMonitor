@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { 
@@ -49,15 +49,13 @@ import bpReadingService, {
   type BPReading, 
   type CreateBPReadingData, 
   type BPStatistics, 
-  type BPCategoryInfo,
   BPReadingService
 } from '@/services/bpReadingService'
+import { AddBPReadingDialog } from '@/components/AddBPReadingDialog'
 import {
   formatDateIST,
   formatTimeIST,
-  formatChartDate,
-  getCurrentDatetimeLocal,
-  datetimeLocalToISO
+  formatChartDate
 } from '@/utils/timeUtils'
 
 const BP_CATEGORIES = {
@@ -145,193 +143,7 @@ const CustomDot = (props: any) => {
   return <Dot cx={cx} cy={cy} r={3} fill={props.fill} />
 }
 
-function AddBPReadingDialog({ onAdd }: { onAdd: (reading: CreateBPReadingData) => void }) {
-  const [open, setOpen] = useState(false)
-  const [formData, setFormData] = useState<CreateBPReadingData>({
-    systolic: '',
-    diastolic: '',
-    pulseRate: '',
-    timestamp: getCurrentDatetimeLocal(),
-    comments: '',
-    location: '',
-    deviceUsed: '',
-    tags: []
-  })
-  const [errors, setErrors] = useState<string[]>([])
-  const [submitting, setSubmitting] = useState(false)
 
-  const validateForm = () => {
-    const newErrors: string[] = []
-    
-    if (!formData.systolic || parseInt(formData.systolic) < 70 || parseInt(formData.systolic) > 250) {
-      newErrors.push('Systolic pressure must be between 70-250 mmHg')
-    }
-    
-    if (!formData.diastolic || parseInt(formData.diastolic) < 40 || parseInt(formData.diastolic) > 150) {
-      newErrors.push('Diastolic pressure must be between 40-150 mmHg')
-    }
-    
-    if (formData.pulseRate && (parseInt(formData.pulseRate) < 30 || parseInt(formData.pulseRate) > 200)) {
-      newErrors.push('Pulse rate must be between 30-200 bpm')
-    }
-    
-    setErrors(newErrors)
-    return newErrors.length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) return
-
-    setSubmitting(true)
-    
-    try {
-      const readingData: CreateBPReadingData = {
-        systolic: parseInt(formData.systolic),
-        diastolic: parseInt(formData.diastolic),
-        pulseRate: formData.pulseRate ? parseInt(formData.pulseRate) : undefined,
-        timestamp: datetimeLocalToISO(formData.timestamp),
-        comments: formData.comments || undefined,
-        location: formData.location || undefined,
-        deviceUsed: formData.deviceUsed || undefined,
-        tags: formData.tags || []
-      }
-      
-      await onAdd(readingData)
-      setOpen(false)
-      setFormData({
-        systolic: '',
-        diastolic: '',
-        pulseRate: '',
-        timestamp: getCurrentDatetimeLocal(),
-        comments: '',
-        location: '',
-        deviceUsed: '',
-        tags: []
-      })
-      setErrors([])
-    } catch (error) {
-      setErrors(['Failed to add reading. Please try again.'])
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2 cursor-pointer">
-          <Plus className="h-4 w-4" />
-          Add Reading
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Blood Pressure Reading</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {errors.length > 0 && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <ul className="list-disc pl-4">
-                  {errors.map((error, index) => (
-                    <li key={index}>{error}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Systolic (mmHg)</label>
-              <Input
-                type="number"
-                min="70"
-                max="250"
-                value={formData.systolic}
-                onChange={(e) => setFormData({...formData, systolic: e.target.value})}
-                placeholder="120"
-                className="cursor-pointer"
-                disabled={submitting}
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Diastolic (mmHg)</label>
-              <Input
-                type="number"
-                min="40"
-                max="150"
-                value={formData.diastolic}
-                onChange={(e) => setFormData({...formData, diastolic: e.target.value})}
-                placeholder="80"
-                className="cursor-pointer"
-                disabled={submitting}
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium">Pulse Rate (bpm) - Optional</label>
-            <Input
-              type="number"
-              min="30"
-              max="200"
-              value={formData.pulseRate}
-              onChange={(e) => setFormData({...formData, pulseRate: e.target.value})}
-              placeholder="72"
-              className="cursor-pointer"
-              disabled={submitting}
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium">Date & Time</label>
-            <Input
-              type="datetime-local"
-              value={formData.timestamp}
-              onChange={(e) => setFormData({...formData, timestamp: e.target.value})}
-              className="cursor-pointer"
-              disabled={submitting}
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium">Comments - Optional</label>
-            <Input
-              value={formData.comments}
-              onChange={(e) => setFormData({...formData, comments: e.target.value})}
-              placeholder="How are you feeling?"
-              className="cursor-pointer"
-              disabled={submitting}
-            />
-          </div>
-          
-          <div className="flex gap-2 pt-4">
-            <Button type="submit" disabled={submitting} className="flex-1 cursor-pointer">
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                'Add Reading'
-              )}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting} className="cursor-pointer">
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 export default function BPReadings() {
   const [readings, setReadings] = useState<BPReading[]>([])
@@ -390,6 +202,7 @@ export default function BPReadings() {
 
   const handleAddReading = async (newReading: CreateBPReadingData) => {
     try {
+      // The shared component already handles timestamp conversion
       await bpReadingService.createReading(newReading)
       
       // Refresh readings data
@@ -413,6 +226,7 @@ export default function BPReadings() {
       
     } catch (err) {
       setError('Failed to add reading: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      throw err // Re-throw to let the dialog handle the error display
     }
   }
 
@@ -722,7 +536,6 @@ export default function BPReadings() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                       Blood Pressure Trends
-                      <Info className="h-4 w-4 text-muted-foreground" />
                     </CardTitle>
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
