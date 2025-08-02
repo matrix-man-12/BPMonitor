@@ -148,7 +148,7 @@ export function AddBPReadingDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="systolic" className="text-sm font-medium">
+              <label htmlFor="systolic" className="text-sm font-medium cursor-pointer">
                 Systolic (mmHg)
               </label>
               <Input
@@ -159,13 +159,12 @@ export function AddBPReadingDialog({
                 placeholder="120"
                 value={formData.systolic}
                 onChange={(e) => setFormData({ ...formData, systolic: e.target.value })}
-                className="cursor-pointer"
                 disabled={submitting}
                 required
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="diastolic" className="text-sm font-medium">
+              <label htmlFor="diastolic" className="text-sm font-medium cursor-pointer">
                 Diastolic (mmHg)
               </label>
               <Input
@@ -176,7 +175,6 @@ export function AddBPReadingDialog({
                 placeholder="80"
                 value={formData.diastolic}
                 onChange={(e) => setFormData({ ...formData, diastolic: e.target.value })}
-                className="cursor-pointer"
                 disabled={submitting}
                 required
               />
@@ -184,7 +182,7 @@ export function AddBPReadingDialog({
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="pulseRate" className="text-sm font-medium">
+            <label htmlFor="pulseRate" className="text-sm font-medium cursor-pointer">
               Pulse Rate (bpm) - Optional
             </label>
             <Input
@@ -195,13 +193,12 @@ export function AddBPReadingDialog({
               placeholder="72"
               value={formData.pulseRate}
               onChange={(e) => setFormData({ ...formData, pulseRate: e.target.value })}
-              className="cursor-pointer"
               disabled={submitting}
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="timestamp" className="text-sm font-medium">
+            <label htmlFor="timestamp" className="text-sm font-medium cursor-pointer">
               Date & Time
             </label>
             <Input
@@ -209,14 +206,13 @@ export function AddBPReadingDialog({
               type="datetime-local"
               value={formData.timestamp}
               onChange={(e) => setFormData({ ...formData, timestamp: e.target.value })}
-              className="cursor-pointer"
               disabled={submitting}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="comments" className="text-sm font-medium">
+            <label htmlFor="comments" className="text-sm font-medium cursor-pointer">
               Comments - Optional
             </label>
             <Input
@@ -224,7 +220,6 @@ export function AddBPReadingDialog({
               placeholder="e.g., after exercise, morning reading..."
               value={formData.comments}
               onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
-              className="cursor-pointer"
               disabled={submitting}
             />
           </div>

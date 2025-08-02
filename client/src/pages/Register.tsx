@@ -304,11 +304,11 @@ export function Register() {
 
               <div className="text-xs text-muted-foreground text-center">
                 By creating an account, you agree to our{' '}
-                <Link to="/terms" className="text-primary hover:underline">
+                <Link to="/terms" className="text-primary hover:underline cursor-pointer">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link to="/privacy" className="text-primary hover:underline">
+                <Link to="/privacy" className="text-primary hover:underline cursor-pointer">
                   Privacy Policy
                 </Link>
               </div>
@@ -321,7 +321,7 @@ export function Register() {
           <span className="text-muted-foreground">Already have an account? </span>
           <Link 
             to="/login" 
-            className="text-primary hover:underline font-medium"
+            className="text-primary hover:underline font-medium cursor-pointer"
           >
             Sign in
           </Link>

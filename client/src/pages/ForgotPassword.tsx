@@ -195,7 +195,7 @@ export function ForgotPassword() {
                 <div className="text-center text-xs text-muted-foreground">
                   <p>
                     Remember your password?{' '}
-                    <Link to="/login" className="text-blue-600 hover:underline font-medium">
+                    <Link to="/login" className="text-blue-600 hover:underline font-medium cursor-pointer">
                       Sign in here
                     </Link>
                   </p>

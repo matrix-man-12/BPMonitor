@@ -366,7 +366,6 @@ export default function Profile() {
                     value={profileData.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     disabled={!isEditing}
-                    className="cursor-pointer"
                   />
                 </div>
                 
@@ -379,7 +378,6 @@ export default function Profile() {
                     value={profileData.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     disabled={!isEditing}
-                    className="cursor-pointer"
                   />
                 </div>
 
@@ -393,7 +391,6 @@ export default function Profile() {
                     value={profileData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     disabled={!isEditing}
-                    className="cursor-pointer"
                   />
                 </div>
 
@@ -407,7 +404,6 @@ export default function Profile() {
                     value={profileData.dateOfBirth}
                     onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
                     disabled={!isEditing}
-                    className="cursor-pointer"
                   />
                 </div>
               </div>

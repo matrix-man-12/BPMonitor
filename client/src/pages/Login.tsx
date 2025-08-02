@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+git aimport { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -153,7 +153,7 @@ export function Login() {
                     placeholder="Enter your email"
                     value={email}
                     onChange={handleEmailChange}
-                    className="pl-10 cursor-pointer"
+                    className="pl-10"
                     required
                     disabled={loading}
                     autoComplete="email"
@@ -171,7 +171,7 @@ export function Login() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={handlePasswordChange}
-                    className="pl-10 pr-10 cursor-pointer"
+                    className="pl-10 pr-10"
                     required
                     disabled={loading}
                     autoComplete="current-password"
