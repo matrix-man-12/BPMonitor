@@ -194,9 +194,11 @@ export function AppSidebar() {
                   <User2 className="size-4 mr-2" />
                   <span>Account</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="size-4 mr-2" />
-                  <span>Settings</span>
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link to="/settings">
+                    <Settings className="size-4 mr-2" />
+                    <span>Settings</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   className="cursor-pointer text-red-600 focus:text-red-600"

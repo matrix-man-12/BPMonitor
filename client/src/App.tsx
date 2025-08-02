@@ -7,12 +7,14 @@ import { FamilyInvite } from '@/pages/FamilyInvite'
 import Profile from '@/pages/Profile'
 import BPReadings from '@/pages/BPReadings'
 import { Notifications } from '@/pages/Notifications'
+import Settings from '@/pages/Settings'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
 import { ForgotPassword } from '@/pages/ForgotPassword'
 import { ResetPassword } from '@/pages/ResetPassword'
 import { useAuth } from '@/hooks/useAuth'
 import { NotificationProvider } from '@/hooks/useNotifications'
+import { ThemeProvider } from '@/hooks/useTheme'
 import './App.css'
 
 function App() {
@@ -27,8 +29,9 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
+    <ThemeProvider>
+      <Router>
+        <Routes>
         {/* Public invite route - accessible to all */}
         <Route path="/family/join/:inviteCode" element={<FamilyInvite />} />
         
@@ -69,7 +72,7 @@ function App() {
                       <Route path="/profile" element={<Profile />} />
 
                       <Route path="/notifications" element={<Notifications />} />
-                      <Route path="/settings" element={<div>Settings - Coming Soon</div>} />
+                      <Route path="/settings" element={<Settings />} />
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />
                       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
                       <Route path="/register" element={<Navigate to="/dashboard" replace />} />
@@ -81,8 +84,9 @@ function App() {
             />
           </>
         )}
-      </Routes>
-    </Router>
+        </Routes>
+      </Router>
+    </ThemeProvider>
   )
 }
 
