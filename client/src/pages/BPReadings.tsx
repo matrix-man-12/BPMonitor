@@ -25,8 +25,7 @@ import {
   Loader2,
   Activity,
   Target,
-  Zap,
-  Info
+  Zap
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -59,7 +58,9 @@ import {
 } from '@/utils/timeUtils'
 
 const BP_CATEGORIES = {
-  'normal': { label: 'Normal', color: 'bg-green-500', range: '<120 and <80' },
+  'very-low': { label: 'Very Low', color: 'bg-purple-600', range: '<80 and <50' },
+  'low': { label: 'Low', color: 'bg-purple-500', range: '80-89 and 50-59' },
+  'normal': { label: 'Normal', color: 'bg-green-500', range: '90-119 and 60-79' },
   'elevated': { label: 'Elevated', color: 'bg-yellow-500', range: '120-129 and <80' },
   'high-stage-1': { label: 'High Stage 1', color: 'bg-orange-500', range: '130-139 or 80-89' },
   'high-stage-2': { label: 'High Stage 2', color: 'bg-red-500', range: '140-179 or 90-119' },
@@ -423,8 +424,8 @@ export default function BPReadings() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Average BP</p>
                     <p className="text-2xl font-bold">
-                      {statistics && statistics.averageSystolic && statistics.averageDiastolic ? 
-                        `${Math.round(statistics.averageSystolic)}/${Math.round(statistics.averageDiastolic)}` : 
+                      {statistics && statistics.averageBP ? 
+                        `${Math.round(statistics.averageBP.systolic)}/${Math.round(statistics.averageBP.diastolic)}` : 
                        readings.length > 0 ? 
                         `${Math.round(readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length)}/${Math.round(readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length)}` : 
                         '--/--'}
@@ -451,8 +452,8 @@ export default function BPReadings() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Normal Readings</p>
                     <p className="text-2xl font-bold">
-                      {statistics && typeof statistics.normalPercentage === 'number' ? 
-                        `${safeToFixed(statistics.normalPercentage, 0)}%` : 
+                      {statistics && statistics.categoryDistribution && statistics.categoryDistribution.normal ? 
+                        `${safeToFixed(statistics.categoryDistribution.normal.percentage, 0)}%` : 
                        readings.length > 0 ? 
                         `${calculatePercentage(readings.filter(r => r.category === 'normal').length, readings.length)}%` :
                         '0%'}

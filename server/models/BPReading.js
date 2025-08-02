@@ -61,8 +61,8 @@ const bpReadingSchema = new mongoose.Schema({
   category: {
     type: String,
     enum: {
-      values: ['normal', 'elevated', 'high-stage-1', 'high-stage-2', 'hypertensive-crisis'],
-      message: 'Category must be one of: normal, elevated, high-stage-1, high-stage-2, hypertensive-crisis'
+      values: ['very-low', 'low', 'normal', 'elevated', 'high-stage-1', 'high-stage-2', 'hypertensive-crisis'],
+      message: 'Category must be one of: very-low, low, normal, elevated, high-stage-1, high-stage-2, hypertensive-crisis'
     },
     required: [true, 'BP category is required']
   },
@@ -132,8 +132,12 @@ bpReadingSchema.statics.categorizeBP = function(systolic, diastolic) {
     return 'high-stage-1';
   } else if (systolic >= 120 && diastolic < 80) {
     return 'elevated';
-  } else {
+  } else if (systolic >= 90 && diastolic >= 60) {
     return 'normal';
+  } else if (systolic >= 80 && diastolic >= 50) {
+    return 'low';
+  } else {
+    return 'very-low';
   }
 };
 
@@ -146,32 +150,44 @@ bpReadingSchema.methods.updateCategory = function() {
 // Static method to get category info
 bpReadingSchema.statics.getCategoryInfo = function() {
   return {
+    'very-low': { 
+      label: 'Very Low (Severe Hypotension)', 
+      color: '#7c3aed', 
+      range: 'Less than 80 and less than 50',
+      description: 'This is a medical emergency. Seek immediate medical attention!'
+    },
+    'low': { 
+      label: 'Low (Hypotension)', 
+      color: '#a855f7', 
+      range: '80-89 and 50-59',
+      description: 'You have low blood pressure. May cause dizziness or fainting.'
+    },
     'normal': { 
       label: 'Normal', 
       color: '#22c55e', 
-      range: 'Less than 120 and less than 80',
+      range: '90-119 and 60-79',
       description: 'Your blood pressure is in the normal range.'
     },
     'elevated': { 
       label: 'Elevated', 
       color: '#eab308', 
       range: '120-129 and less than 80',
-      description: 'Your blood pressure is elevated. Consider lifestyle changes.'
+      description: 'Your blood pressure is elevated. May progress to hypertension.'
     },
     'high-stage-1': { 
-      label: 'High Blood Pressure Stage 1', 
+      label: 'High – Stage 1 Hypertension', 
       color: '#f97316', 
       range: '130-139 or 80-89',
       description: 'You have Stage 1 high blood pressure. Consult your doctor.'
     },
     'high-stage-2': { 
-      label: 'High Blood Pressure Stage 2', 
+      label: 'High – Stage 2 Hypertension', 
       color: '#ef4444', 
       range: '140-179 or 90-119',
-      description: 'You have Stage 2 high blood pressure. Seek medical attention.'
+      description: 'You have Stage 2 high blood pressure. Medical advice recommended.'
     },
     'hypertensive-crisis': { 
-      label: 'Hypertensive Crisis', 
+      label: 'Highly Elevated (Hypertensive Crisis)', 
       color: '#dc2626', 
       range: '180 or higher and/or 120 or higher',
       description: 'This is a medical emergency. Seek immediate medical attention!'

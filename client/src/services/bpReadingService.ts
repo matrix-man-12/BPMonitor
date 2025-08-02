@@ -23,7 +23,7 @@ export interface BPReading {
   pulseRate?: number
   timestamp: string
   comments?: string
-  category: 'normal' | 'elevated' | 'high-stage-1' | 'high-stage-2' | 'hypertensive-crisis'
+  category: 'very-low' | 'low' | 'normal' | 'elevated' | 'high-stage-1' | 'high-stage-2' | 'hypertensive-crisis'
   location?: string
   deviceUsed?: string
   isValidated: boolean
@@ -209,14 +209,20 @@ class BPReadingService {
       return 'high-stage-1'
     } else if (systolic >= 120 && diastolic < 80) {
       return 'elevated'
-    } else {
+    } else if (systolic >= 90 && diastolic >= 60) {
       return 'normal'
+    } else if (systolic >= 80 && diastolic >= 50) {
+      return 'low'
+    } else {
+      return 'very-low'
     }
   }
 
   // Helper method to get category color
   static getCategoryColor(category: BPReading['category']): string {
     const colors = {
+      'very-low': '#7c3aed',
+      'low': '#a855f7',
       'normal': '#22c55e',
       'elevated': '#eab308',
       'high-stage-1': '#f97316',

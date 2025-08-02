@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
@@ -178,6 +178,9 @@ export function FamilyGroups() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Join Family Group</DialogTitle>
+                <DialogDescription>
+                  Enter an invite code to join an existing family group.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -205,6 +208,9 @@ export function FamilyGroups() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Family Group</DialogTitle>
+                <DialogDescription>
+                  Create a family group to share blood pressure readings with family members.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -252,6 +258,9 @@ export function FamilyGroups() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Share Family Group Invite</DialogTitle>
+            <DialogDescription>
+              Share this invite link with family members to join your group.
+            </DialogDescription>
           </DialogHeader>
           {selectedGroup && inviteLink && (
             <div className="space-y-4">

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertTriangle, Plus, Loader2 } from 'lucide-react'
 import { getCurrentDatetimeLocal, datetimeLocalToISO } from '@/utils/timeUtils'
@@ -128,6 +128,9 @@ export function AddBPReadingDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Blood Pressure Reading</DialogTitle>
+          <DialogDescription>
+            Enter your blood pressure measurements and additional details.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {errors.length > 0 && (
