@@ -72,6 +72,14 @@ const userSchema = new mongoose.Schema({
   },
   lastLogin: {
     type: Date
+  },
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
@@ -115,6 +123,40 @@ userSchema.methods.toJSON = function() {
 // Static method to find user by email
 userSchema.statics.findByEmail = function(email) {
   return this.findOne({ email: email.toLowerCase() });
+};
+
+// Instance method to generate password reset token
+userSchema.methods.generatePasswordResetToken = function() {
+  const crypto = require('crypto');
+  
+  // Generate a random token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  
+  // Hash the token and set it to resetPasswordToken field
+  this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  
+  // Set token expiry to 30 minutes from now
+  this.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 minutes
+  
+  // Return the unhashed token (this will be sent in email)
+  return resetToken;
+};
+
+// Instance method to validate password reset token
+userSchema.methods.validatePasswordResetToken = function(token) {
+  const crypto = require('crypto');
+  
+  // Hash the provided token
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  
+  // Check if token matches and hasn't expired
+  return this.resetPasswordToken === hashedToken && this.resetPasswordExpires > Date.now();
+};
+
+// Instance method to clear password reset fields
+userSchema.methods.clearPasswordResetToken = function() {
+  this.resetPasswordToken = null;
+  this.resetPasswordExpires = null;
 };
 
 module.exports = mongoose.model('User', userSchema); 

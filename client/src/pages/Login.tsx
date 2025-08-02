@@ -7,52 +7,105 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Activity, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
+
 export function Login() {
   const navigate = useNavigate()
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
 
-  // Redirect if already authenticated
+  // Debug component mount/unmount
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard', { replace: true })
+    console.log('🏠 Login component mounted')
+    return () => {
+      console.log('💥 Login component unmounted - THIS INDICATES A RELOAD!')
     }
-  }, [isAuthenticated, navigate])
+  }, [])
+
+  // Redirect if already authenticated (but not during login process)
+  useEffect(() => {
+    console.log('🔄 Auth state changed:', { isAuthenticated, isLoggingIn, authLoading, loading })
+    
+    // TEMPORARILY DISABLED to test if this is causing the reload
+    // if (isAuthenticated && !isLoggingIn && !loading) {
+    //   console.log('🚀 Navigating to dashboard')
+    //   navigate('/dashboard', { replace: true })
+    // }
+  }, [isAuthenticated, navigate, isLoggingIn, authLoading, loading])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
-    if (loading) return // Prevent double submission
+    console.log('🔍 Login form submitted:', { email, loading })
     
+    if (loading || isLoggingIn) {
+      console.log('⚠️ Already loading, preventing double submission')
+      return
+    }
+    
+    // Basic validation
+    if (!email || !password) {
+      console.log('❌ Validation failed: missing email or password')
+      setError('Please enter both email and password')
+      return
+    }
+    
+    console.log('📝 Starting login process...')
     setLoading(true)
+    setIsLoggingIn(true) // Prevent navigation during login
     setError('')
 
     try {
+      console.log('🚀 Calling login function...')
       const result = await login(email, password)
+      console.log('📋 Login result:', result)
+      
       if (result.success) {
+        console.log('✅ Login successful, clearing form')
         // Clear form on success
         setEmail('')
         setPassword('')
-        // Navigation will be handled by the useEffect hook
+        // Navigation will be handled by the useEffect hook after isLoggingIn is set to false
       } else {
+        console.log('❌ Login failed:', result.message)
         setError(result.message || 'Login failed')
+        setIsLoggingIn(false) // Allow normal behavior on error
+        // Don't clear the form on error - user might want to correct and retry
       }
     } catch (error) {
-      console.error('Login submission error:', error)
-      setError('An unexpected error occurred')
+      console.error('💥 Login submission error:', error)
+      setError('An unexpected error occurred. Please try again.')
+      setIsLoggingIn(false) // Allow normal behavior on error
     } finally {
+      console.log('🏁 Setting loading to false')
       setLoading(false)
+      // Only reset isLoggingIn on success to allow navigation
+      if (!error) {
+        setTimeout(() => setIsLoggingIn(false), 100) // Small delay to allow state to settle
+      }
     }
   }
 
   const fillDemoCredentials = () => {
     setEmail('demo@bpmonitor.com')
     setPassword('demo123')
+    setError('') // Clear any existing errors
+  }
+
+  // Clear error when user starts typing
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value)
+    if (error) setError('')
+  }
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value)
+    if (error) setError('')
   }
 
   return (
@@ -77,11 +130,20 @@ export function Login() {
             <CardTitle className="text-2xl text-center">Sign In</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <form 
+              onSubmit={(e) => {
+                console.log('📝 Form onSubmit triggered')
+                handleSubmit(e)
+              }} 
+              className="space-y-4" 
+              noValidate
+            >
               {error && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription className="text-sm font-medium">
+                    {error}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -94,7 +156,7 @@ export function Login() {
                     type="email"
                     placeholder="Enter your email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={handleEmailChange}
                     className="pl-10 cursor-pointer"
                     required
                     disabled={loading}
@@ -112,7 +174,7 @@ export function Login() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={handlePasswordChange}
                     className="pl-10 pr-10 cursor-pointer"
                     required
                     disabled={loading}

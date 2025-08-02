@@ -6,9 +6,13 @@ import { FamilyGroups } from '@/pages/FamilyGroups'
 import { FamilyInvite } from '@/pages/FamilyInvite'
 import Profile from '@/pages/Profile'
 import BPReadings from '@/pages/BPReadings'
+import { Notifications } from '@/pages/Notifications'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
+import { ForgotPassword } from '@/pages/ForgotPassword'
+import { ResetPassword } from '@/pages/ResetPassword'
 import { useAuth } from '@/hooks/useAuth'
+import { NotificationProvider } from '@/hooks/useNotifications'
 import './App.css'
 
 function App() {
@@ -33,7 +37,19 @@ function App() {
           <>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
+          </>
+        )}
+
+        {/* Redirect authenticated users from auth pages */}
+        {isAuthenticated && (
+          <>
+            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/register" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/forgot-password" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/reset-password" element={<Navigate to="/dashboard" replace />} />
           </>
         )}
         
@@ -43,15 +59,16 @@ function App() {
             <Route
               path="/*"
               element={
-                <SidebarProvider>
-                  <DashboardLayout>
+                <NotificationProvider>
+                  <SidebarProvider>
+                    <DashboardLayout>
                     <Routes>
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/readings" element={<BPReadings />} />
                       <Route path="/family" element={<FamilyGroups />} />
                       <Route path="/profile" element={<Profile />} />
 
-                      <Route path="/notifications" element={<div>Notifications - Coming Soon</div>} />
+                      <Route path="/notifications" element={<Notifications />} />
                       <Route path="/settings" element={<div>Settings - Coming Soon</div>} />
                       <Route path="/" element={<Navigate to="/dashboard" replace />} />
                       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
@@ -59,6 +76,7 @@ function App() {
                     </Routes>
                   </DashboardLayout>
                 </SidebarProvider>
+                </NotificationProvider>
               }
             />
           </>

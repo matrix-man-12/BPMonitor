@@ -53,14 +53,40 @@ axios.interceptors.request.use((config) => {
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.log('🚨 Axios interceptor - error caught:', {
+      status: error.response?.status,
+      url: error.config?.url,
+      currentPath: window.location.pathname
+    })
+    
     if (error.response?.status === 401) {
-      // Only clear auth and redirect if not already on login page
       const currentPath = window.location.pathname
-      if (currentPath !== '/login' && currentPath !== '/register') {
+      const isAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/forgot-password' || currentPath === '/reset-password'
+      const isAuthRequest = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register') || error.config?.url?.includes('/auth/forgot-password')
+      
+      console.log('🔍 Interceptor decision:', {
+        isAuthPage,
+        isAuthRequest,
+        willRedirect: !isAuthPage && !isAuthRequest,
+        currentPath,
+        url: error.config?.url
+      })
+      
+      // TEMPORARILY DISABLED - Testing if this is causing the reload
+      console.log('⚠️ INTERCEPTOR REDIRECT DISABLED FOR DEBUGGING')
+      /*
+      // Only clear auth and redirect if:
+      // 1. Not already on an auth page
+      // 2. The error is from a protected endpoint (not login/register/forgot-password)
+      if (!isAuthPage && !isAuthRequest) {
+        console.log('🔄 Redirecting to login due to 401 on protected endpoint')
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         window.location.href = '/login'
+      } else {
+        console.log('✋ Skipping redirect - auth page or auth request')
       }
+      */
     }
     return Promise.reject(error)
   }
@@ -106,11 +132,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('🔐 useAuth.login called with:', { email })
       setLoading(true)
+      
+      console.log('📡 Making login request to server...')
       const response = await axios.post('/api/auth/login', { email, password })
+      
+      console.log('📨 Server response:', response.data)
       
       if (response.data.success) {
         const { user: newUser, token } = response.data
+        
+        console.log('✅ Login successful, updating storage and state')
         
         // Update localStorage first
         localStorage.setItem('token', token)
@@ -121,15 +154,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         return { success: true }
       } else {
-        return { success: false, message: response.data.message }
+        console.log('❌ Login failed - server returned success: false')
+        return { success: false, message: response.data.message || 'Login failed' }
       }
     } catch (error: any) {
-      console.error('Login error:', error)
+      console.error('💥 Login error caught:', error)
+      
+      // Handle different types of errors
+      let errorMessage = 'An unexpected error occurred'
+      
+      if (error.response) {
+        console.log('📊 Error response details:', {
+          status: error.response.status,
+          data: error.response.data,
+          url: error.config?.url
+        })
+        
+        // Server responded with error status
+        const status = error.response.status
+        const serverMessage = error.response.data?.message
+        
+        if (status === 401) {
+          errorMessage = serverMessage || 'Invalid email or password'
+        } else if (status === 400) {
+          errorMessage = serverMessage || 'Please check your input and try again'
+        } else if (status === 429) {
+          errorMessage = 'Too many login attempts. Please try again later'
+        } else if (status >= 500) {
+          errorMessage = 'Server error. Please try again later'
+        } else {
+          errorMessage = serverMessage || 'Login failed'
+        }
+      } else if (error.request) {
+        console.log('🌐 Network error - no response received')
+        errorMessage = 'Network error. Please check your connection and try again'
+      } else {
+        console.log('⚙️ Request setup error:', error.message)
+      }
+      
+      console.log('📤 Returning error result:', { success: false, message: errorMessage })
+      
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Login failed' 
+        message: errorMessage
       }
     } finally {
+      console.log('🏁 useAuth.login - setting loading to false')
       setLoading(false)
     }
   }

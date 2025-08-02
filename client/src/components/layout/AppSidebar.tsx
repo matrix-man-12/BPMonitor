@@ -33,34 +33,38 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/hooks/useAuth'
+import { useNotifications } from '@/hooks/useNotifications'
 
-const navigationItems = [
-  {
-    title: 'Dashboard',
-    url: '/dashboard',
-    icon: Home,
-    badge: null,
-  },
-  {
-    title: 'BP Readings',
-    url: '/readings',
-    icon: Heart,
-    badge: null,
-  },
-  {
-    title: 'Family Groups',
-    url: '/family',
-    icon: Users,
-    badge: 'New',
-  },
-
-  {
-    title: 'Notifications',
-    url: '/notifications',
-    icon: Bell,
-    badge: '3',
-  },
-]
+const useNavigationItems = () => {
+  const { unreadCount } = useNotifications()
+  
+  return [
+    {
+      title: 'Dashboard',
+      url: '/dashboard',
+      icon: Home,
+      badge: null,
+    },
+    {
+      title: 'BP Readings',
+      url: '/readings',
+      icon: Heart,
+      badge: null,
+    },
+    {
+      title: 'Family Groups',
+      url: '/family',
+      icon: Users,
+      badge: 'New',
+    },
+    {
+      title: 'Notifications',
+      url: '/notifications',
+      icon: Bell,
+      badge: unreadCount > 0 ? unreadCount.toString() : null,
+    },
+  ]
+}
 
 const settingsItems = [
   {
@@ -78,6 +82,7 @@ const settingsItems = [
 export function AppSidebar() {
   const location = useLocation()
   const { user, logout } = useAuth()
+  const navigationItems = useNavigationItems()
 
   const isActive = (url: string) => location.pathname === url
 
