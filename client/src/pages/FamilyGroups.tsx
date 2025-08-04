@@ -14,16 +14,11 @@ import {
   UserPlus,
   Crown,
   Clock,
-  Heart,
   MoreVertical,
-  Shield,
   Trash2,
   Share2,
-  Link,
   CheckCircle,
-  AlertTriangle,
-  Loader2,
-  RefreshCw
+  AlertTriangle
 } from 'lucide-react'
 import { 
   DropdownMenu,
@@ -32,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import familyService, { type FamilyGroup, type CreateFamilyGroupData, type InviteLinkData } from '@/services/familyService'
+import familyService, { FamilyService, type FamilyGroup, type CreateFamilyGroupData, type InviteLinkData } from '@/services/familyService'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDateIST } from '@/utils/timeUtils'
 
@@ -142,7 +137,7 @@ export function FamilyGroups() {
 
   const shareInviteLink = async (link: string, groupName: string) => {
     try {
-      await familyService.shareInviteLink(link, groupName)
+      await FamilyService.shareInviteLink(link, groupName)
       setSuccess('Invite link shared!')
       setTimeout(() => setSuccess(null), 3000)
     } catch (error) {
@@ -339,7 +334,6 @@ export function FamilyGroups() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {familyGroups.map((group) => {
             const isAdmin = group.adminId === user?._id
-            const currentUserMember = group.members.find(m => m.userId._id === user?._id)
             
             return (
               <Card key={group._id} className="dashboard-card group hover:scale-105">

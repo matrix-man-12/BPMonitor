@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getCurrentIST, datetimeLocalToISO } from '@/utils/timeUtils'
+import { getCurrentIST } from '@/utils/timeUtils'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 const api = axios.create({

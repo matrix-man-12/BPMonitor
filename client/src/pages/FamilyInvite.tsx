@@ -13,7 +13,7 @@ import {
   Loader2,
   ArrowRight
 } from 'lucide-react'
-import familyService, { type InvitePreview } from '@/services/familyService'
+import familyService, { FamilyService, type InvitePreview } from '@/services/familyService'
 import { useAuth } from '@/hooks/useAuth'
 
 export function FamilyInvite() {
@@ -201,12 +201,12 @@ export function FamilyInvite() {
             </div>
 
             {/* Expiry Warning */}
-            <Alert variant={familyService.isInviteExpired(preview.expiresAt) ? "destructive" : "default"}>
+                            <Alert variant={FamilyService.isInviteExpired(preview.expiresAt) ? "destructive" : "default"}>
               <Clock className="h-4 w-4" />
               <AlertDescription>
-                {familyService.isInviteExpired(preview.expiresAt) 
+                {FamilyService.isInviteExpired(preview.expiresAt) 
                   ? 'This invite has expired'
-                  : `Expires ${familyService.getTimeRemaining(preview.expiresAt)}`
+                  : `Expires ${FamilyService.getTimeRemaining(preview.expiresAt)}`
                 }
               </AlertDescription>
             </Alert>
@@ -247,7 +247,7 @@ export function FamilyInvite() {
                 
                 <Button 
                   onClick={handleJoinGroup} 
-                  disabled={joining || familyService.isInviteExpired(preview.expiresAt)}
+                  disabled={joining || FamilyService.isInviteExpired(preview.expiresAt)}
                   className="w-full cursor-pointer"
                 >
                   {joining ? (

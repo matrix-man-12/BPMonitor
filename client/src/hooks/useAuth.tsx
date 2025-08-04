@@ -9,11 +9,15 @@ interface User {
   fullName: string
   dateOfBirth?: string
   familyGroups: string[]
+  createdAt?: string
+  avatar?: string
   notificationPreferences: {
     enabled: boolean
     frequency: string
     times: string[]
     email: boolean
+    push: boolean
+    reminders: boolean
   }
 }
 
