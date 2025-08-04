@@ -42,7 +42,7 @@ interface RegisterData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Configure axios defaults
-axios.defaults.baseURL = 'http://localhost:5000'
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 // Request interceptor to add auth token
 axios.interceptors.request.use((config) => {
