@@ -272,4 +272,5 @@ class FamilyService {
   }
 }
 
-export default new FamilyService() 
+export default new FamilyService()
+export { FamilyService } 

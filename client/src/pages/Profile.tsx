@@ -24,7 +24,9 @@ import {
   Save,
   AlertTriangle,
   CheckCircle,
-  Loader2
+  Loader2,
+  Heart,
+  Clock
 } from 'lucide-react'
 import { formatDateIST } from '@/utils/timeUtils'
 
@@ -46,7 +48,9 @@ export default function Profile() {
     enabled: user?.notificationPreferences?.enabled || false,
     email: user?.notificationPreferences?.email || false,
     push: user?.notificationPreferences?.push || false,
-    reminders: user?.notificationPreferences?.reminders || false
+    reminders: user?.notificationPreferences?.reminders || false,
+    frequency: user?.notificationPreferences?.frequency || 'daily',
+    times: user?.notificationPreferences?.times || ['07:00', '22:00']
   })
 
   // Password change state
@@ -73,7 +77,9 @@ export default function Profile() {
         enabled: user.notificationPreferences?.enabled || false,
         email: user.notificationPreferences?.email || false,
         push: user.notificationPreferences?.push || false,
-        reminders: user.notificationPreferences?.reminders || false
+        reminders: user.notificationPreferences?.reminders || false,
+        frequency: user.notificationPreferences?.frequency || 'daily',
+        times: user.notificationPreferences?.times || ['07:00', '22:00']
       })
     }
   }, [user])
@@ -127,7 +133,9 @@ export default function Profile() {
         enabled: user.notificationPreferences?.enabled || false,
         email: user.notificationPreferences?.email || false,
         push: user.notificationPreferences?.push || false,
-        reminders: user.notificationPreferences?.reminders || false
+        reminders: user.notificationPreferences?.reminders || false,
+        frequency: user.notificationPreferences?.frequency || 'daily',
+        times: user.notificationPreferences?.times || ['07:00', '22:00']
       })
     }
   }
