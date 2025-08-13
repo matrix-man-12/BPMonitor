@@ -10,8 +10,8 @@ const registerUser = async (req, res) => {
   try {
     const { email, password, firstName, lastName, dateOfBirth } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    // Check if user already exists (case-insensitive)
+    const existingUser = await User.findByEmail(email);
 
     if (existingUser) {
       return res.status(400).json({
@@ -20,14 +20,11 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     // Create new user
     const user = new User({
       email,
-      password: hashedPassword,
+      // Let the User model's pre-save hook hash the password
+      password: password,
       firstName,
       lastName,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
@@ -84,8 +81,8 @@ const login = async (req, res) => {
       });
     }
 
-    // Find user by email
-    const user = await User.findOne({ email }).select('+password');
+    // Find user by email (case-insensitive)
+    const user = await User.findByEmail(email).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,
