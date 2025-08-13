@@ -14,12 +14,32 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const corsOriginsFromEnv = (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean)
+
+const allowedOrigins = [
+  ...corsOriginsFromEnv,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5174'
+]
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.CORS_ORIGIN 
-    : 'http://localhost:5173',
-  credentials: true
-}));
+  origin: function(origin, callback) {
+    // In development, allow any origin to simplify local testing across hosts and devices
+    if ((process.env.NODE_ENV || 'development') !== 'production') {
+      return callback(null, true)
+    }
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    return callback(new Error('Not allowed by CORS'))
+  },
+  credentials: true,
+  optionsSuccessStatus: 204
+}))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
