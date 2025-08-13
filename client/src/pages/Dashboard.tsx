@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -10,9 +9,7 @@ import {
   
   Calendar,
   Plus,
-  Activity,
   Clock,
-  Target,
   ArrowRight
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -31,20 +28,14 @@ import {
 export function Dashboard() {
   const navigate = useNavigate()
   const [recentReadings, setRecentReadings] = useState<BPReading[]>([])
-  const [stats, setStats] = useState<any>(null)
   const [familyMembers, setFamilyMembers] = useState<any[]>([])
   const [loadingFamily, setLoadingFamily] = useState(true)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [recentData, statisticsData] = await Promise.all([
-          bpReadingService.getRecentReadings(3),
-          bpReadingService.getStatistics('7d')
-        ])
-        
+        const recentData = await bpReadingService.getRecentReadings(3)
         setRecentReadings(recentData)
-        setStats(statisticsData)
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error)
       }
@@ -91,7 +82,7 @@ export function Dashboard() {
     fetchFamilyData()
   }, [])
 
-  const progressPercentage = stats ? Math.min((stats.totalReadings / 7) * 100, 100) : 0
+  // Removed top summary cards; keep core sections only
 
   const handleAddReading = async (newReading: CreateBPReadingData) => {
     try {
@@ -101,10 +92,6 @@ export function Dashboard() {
       // Refresh recent readings
       const recent = await bpReadingService.getRecentReadings()
       setRecentReadings(recent)
-      
-      // Refresh statistics
-      const stats = await bpReadingService.getStatistics()
-      setStats(stats)
       
       // Navigate to readings page
       navigate('/readings')
@@ -116,75 +103,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Statistics Cards Row */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total Readings Card */}
-        <Card className="dashboard-card group hover:scale-105 cursor-pointer" onClick={() => navigate('/readings')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Readings
-            </CardTitle>
-            <Heart className="h-6 w-6 text-red-500 group-hover:animate-pulse cursor-pointer" />
-          </CardHeader>
-          <CardContent>
-            <div className="stat-number text-red-500">{stats?.totalReadings || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-500">+12%</span> from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Family Members Card */}
-        <Card className="dashboard-card group hover:scale-105 cursor-pointer" onClick={() => navigate('/family')}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Family Members
-            </CardTitle>
-            <Users className="h-6 w-6 text-blue-500 group-hover:animate-bounce cursor-pointer" />
-          </CardHeader>
-          <CardContent>
-            <div className="stat-number text-blue-500">{familyMembers.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Active in your group
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Average BP Card */}
-        <Card className="dashboard-card group hover:scale-105 cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Average BP
-            </CardTitle>
-            <Activity className="h-6 w-6 text-green-500 group-hover:animate-pulse cursor-pointer" />
-          </CardHeader>
-          <CardContent>
-            <div className="stat-number text-green-500">
-              {stats?.averageBP ? `${stats.averageBP.systolic}/${stats.averageBP.diastolic}` : '--/--'}
-            </div>
-            <p className="text-xs text-muted-foreground">Last 7 days average</p>
-          </CardContent>
-        </Card>
-
-        {/* Weekly Goal Card */}
-        <Card className="dashboard-card group hover:scale-105 cursor-pointer">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Weekly Progress
-            </CardTitle>
-            <Target className="h-6 w-6 text-purple-500 group-hover:animate-spin cursor-pointer" />
-          </CardHeader>
-          <CardContent>
-            <div className="stat-number text-purple-500">
-              {stats?.totalReadings || 0}/7
-            </div>
-            <Progress value={progressPercentage} className="mt-2 h-2" />
-            <p className="text-xs text-muted-foreground mt-1">
-              {Math.round(progressPercentage)}% of weekly goal
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">

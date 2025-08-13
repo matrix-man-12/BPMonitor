@@ -57,12 +57,7 @@ const useNavigationItems = () => {
       icon: Users,
       badge: 'New',
     },
-    {
-      title: 'Notifications',
-      url: '/notifications',
-      icon: Bell,
-      badge: unreadCount > 0 ? unreadCount.toString() : null,
-    },
+    // Notifications temporarily hidden from sidebar, route still available
   ]
 }
 
@@ -190,9 +185,11 @@ export function AppSidebar() {
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuItem className="cursor-pointer">
-                  <User2 className="size-4 mr-2" />
-                  <span>Account</span>
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link to="/profile">
+                    <User2 className="size-4 mr-2" />
+                    <span>Profile</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer" asChild>
                   <Link to="/settings">
