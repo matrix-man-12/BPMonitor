@@ -7,8 +7,7 @@ import {
   ChevronUp,
   Home,
   Heart,
-
-  Bell,
+ 
   User2
 } from 'lucide-react'
 import {
@@ -33,10 +32,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/hooks/useAuth'
-import { useNotifications } from '@/hooks/useNotifications'
 
 const useNavigationItems = () => {
-  const { unreadCount } = useNotifications()
   
   return [
     {
