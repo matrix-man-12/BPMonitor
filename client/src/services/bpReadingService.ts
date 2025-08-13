@@ -102,23 +102,6 @@ export interface GetBPReadingsParams {
 }
 
 class BPReadingService {
-  private api = axios.create({
-    baseURL: 'http://localhost:5000/api',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-
-  constructor() {
-    // Add request interceptor to include JWT token
-    this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('token')
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-      }
-      return config
-    })
-  }
 
   // Create a new BP reading
   async createReading(data: CreateBPReadingData): Promise<BPReading> {

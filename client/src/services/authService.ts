@@ -134,7 +134,9 @@ class AuthService {
   async getProfile(): Promise<{ success: boolean; user: User }> {
     try {
       const response = await this.api.get('/profile')
-      return response.data
+      // Server returns { success, data }, normalize to { success, user }
+      const data = response.data
+      return { success: !!data.success, user: data.data as User }
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to fetch profile')
     }
@@ -144,12 +146,12 @@ class AuthService {
   async updateProfile(userData: Partial<User>): Promise<{ success: boolean; user: User; message: string }> {
     try {
       const response = await this.api.put('/profile', userData)
-      
-      if (response.data.success && response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user))
+      // Server returns { success, message, data }, normalize to { user }
+      const normalized = { success: !!response.data.success, user: response.data.data as User, message: response.data.message }
+      if (normalized.success && normalized.user) {
+        localStorage.setItem('user', JSON.stringify(normalized.user))
       }
-      
-      return response.data
+      return normalized
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to update profile')
     }

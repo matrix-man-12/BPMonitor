@@ -64,6 +64,14 @@ const userSchema = new mongoose.Schema({
     email: {
       type: Boolean,
       default: true
+    },
+    push: {
+      type: Boolean,
+      default: false
+    },
+    reminders: {
+      type: Boolean,
+      default: true
     }
   },
   isActive: {
@@ -72,6 +80,10 @@ const userSchema = new mongoose.Schema({
   },
   lastLogin: {
     type: Date
+  },
+  avatar: {
+    type: String,
+    default: ''
   },
   resetPasswordToken: {
     type: String,
@@ -113,9 +125,13 @@ userSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
 
+// Ensure virtuals in JSON/object outputs
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
 // Transform JSON output
 userSchema.methods.toJSON = function() {
-  const userObject = this.toObject();
+  const userObject = this.toObject({ virtuals: true });
   delete userObject.password;
   return userObject;
 };

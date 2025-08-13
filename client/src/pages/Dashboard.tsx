@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { 
   Heart, 
   Users, 
-  TrendingUp, 
+  
   Calendar,
   Plus,
   Activity,
@@ -40,7 +40,7 @@ export function Dashboard() {
       try {
         const [recentData, statisticsData] = await Promise.all([
           bpReadingService.getRecentReadings(3),
-          bpReadingService.getStatistics('30d')
+          bpReadingService.getStatistics('7d')
         ])
         
         setRecentReadings(recentData)
@@ -162,9 +162,7 @@ export function Dashboard() {
             <div className="stat-number text-green-500">
               {stats?.averageBP ? `${stats.averageBP.systolic}/${stats.averageBP.diastolic}` : '--/--'}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Last 7 days average
-            </p>
+            <p className="text-xs text-muted-foreground">Last 7 days average</p>
           </CardContent>
         </Card>
 
@@ -292,43 +290,7 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card className="dashboard-card">
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <AddBPReadingDialog 
-              onAdd={handleAddReading} 
-              showLoadingState={false}
-            >
-              <Button 
-                className="h-24 flex-col gap-2 bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 w-full cursor-pointer"
-              >
-                <Heart className="h-6 w-6" />
-                Record BP Reading
-              </Button>
-            </AddBPReadingDialog>
-            <Button 
-              variant="outline" 
-              className="h-24 flex-col gap-2 cursor-pointer"
-              onClick={() => navigate('/family')}
-            >
-              <Users className="h-6 w-6" />
-              Manage Family
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-24 flex-col gap-2 cursor-pointer"
-              onClick={() => navigate('/readings')}
-            >
-              <TrendingUp className="h-6 w-6" />
-              View Reports
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      
     </div>
   )
 } 

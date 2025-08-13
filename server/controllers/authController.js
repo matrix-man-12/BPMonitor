@@ -49,13 +49,7 @@ const registerUser = async (req, res) => {
       success: true,
       message: 'User registered successfully',
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        dateOfBirth: user.dateOfBirth
-      }
+      user: user.toJSON()
     });
 
   } catch (error) {
@@ -121,13 +115,7 @@ const login = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        dateOfBirth: user.dateOfBirth
-      }
+      user: user.toJSON()
     });
 
   } catch (error) {

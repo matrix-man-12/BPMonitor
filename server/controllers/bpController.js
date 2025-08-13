@@ -166,10 +166,11 @@ const getBPReadingById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const reading = await BPReading.findOne({
-      _id: id,
-      userId: req.user.id
-    });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid reading ID' });
+    }
+
+    const reading = await BPReading.findOne({ _id: id, userId: req.user.id });
 
     if (!reading) {
       return res.status(404).json({
@@ -218,10 +219,10 @@ const updateBPReading = async (req, res) => {
       });
     }
 
-    // Update fields
-    if (systolic !== undefined) reading.systolic = systolic;
-    if (diastolic !== undefined) reading.diastolic = diastolic;
-    if (pulseRate !== undefined) reading.pulseRate = pulseRate;
+    // Update fields (coerce types)
+    if (systolic !== undefined) reading.systolic = Number(systolic);
+    if (diastolic !== undefined) reading.diastolic = Number(diastolic);
+    if (pulseRate !== undefined) reading.pulseRate = pulseRate === '' ? undefined : Number(pulseRate);
     if (timestamp !== undefined) reading.timestamp = datetimeLocalToUTC(timestamp);
     if (comments !== undefined) reading.comments = comments;
     if (location !== undefined) reading.location = location;
@@ -265,10 +266,11 @@ const deleteBPReading = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await BPReading.findOneAndDelete({
-      _id: id,
-      userId: req.user.id
-    });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid reading ID' });
+    }
+
+    const result = await BPReading.findOneAndDelete({ _id: id, userId: req.user.id });
 
     if (!result) {
       return res.status(404).json({
