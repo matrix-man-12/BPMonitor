@@ -2,14 +2,18 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+function Card({ className, onClick, role, tabIndex, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
         "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        (onClick || role === "button") && "cursor-pointer",
         className
       )}
+      onClick={onClick}
+      role={role}
+      tabIndex={tabIndex}
       {...props}
     />
   )
